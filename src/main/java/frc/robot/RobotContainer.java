@@ -10,6 +10,7 @@ import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import org.json.simple.parser.ParseException;
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands; // FIX: needed to register the autos' named commands
 import com.pathplanner.lib.commands.PathPlannerAuto;
 import com.pathplanner.lib.path.GoalEndState;
 import com.pathplanner.lib.path.PathConstraints;
@@ -45,6 +46,7 @@ import frc.robot.commands.Drive.MinorAdjust.AdjustmentDirection;
 import frc.robot.subsystems.DriveTrain.DriveBase;
 import frc.robot.subsystems.Vision.Vision;
 import frc.robot.subsystems.Intake.Rollers.RollerCommands;
+import frc.robot.subsystems.Intake.Rollers.RollerConstants; // FIX: used by the "start rollers" named command
 import frc.robot.subsystems.Intake.Rollers.Rollers;
 import frc.robot.subsystems.Intake.Rollers.rollersReverse;
 import frc.robot.subsystems.Intake.rackAndPinion.CycleIntake;
@@ -98,6 +100,7 @@ public class RobotContainer {
  
     public static boolean intakeExtended = false;
     public static boolean isCyclingIntake = false;
+    public static boolean stopCyclingRequested = false; // FIX: lets the square button stop the running cycle command
     public static boolean isShooting = false;
 
     public static LoggedDashboardChooser<Command> autoChooser;
@@ -120,12 +123,15 @@ public class RobotContainer {
     public static Supplier<Command> warmpupshooterMin;
     public static Supplier<Command> warmpupshooterAutoBump;
     public static Supplier<Command> warmpupshooterAutoTrench;
+    public static Supplier<Command> aimAtHub;
+    public static Supplier<Command> shootWhenReady;
+    public static Supplier<Command> startRollers;
+    public static Supplier<Command> stopRollers;
 
     //#endregion
  
     public RobotContainer() {
         driveController = new CommandPS5Controller(0);
-        driveControllerAdam = new CommandPS5Controller(1);
         driveBase = new DriveBase();
         hood = new hoodSubsystem();
         flywheel = new flyWheelsubsystem();
@@ -137,6 +143,7 @@ public class RobotContainer {
         vision = new Vision(driveBase::addVisionMeasurement, driveBase::getPose, driveBase::reset);
  
         configureCommands();
+        configureNamedCommands(); // FIX: must run before configureChoosers(), which builds the PathPlannerAutos
         configureDefaultCommands();
         configureMechanismBindings();
         configureDriveBindings();
@@ -198,12 +205,13 @@ public class RobotContainer {
 
         feed = () ->
             new transferOn(transfer)
-                .beforeStarting(getAuto())
-                .alongWith(new kickerOn(kicker))
-                .withName("Feed");
+            .alongWith(new kickerOn(kicker))
+            .withName("Feed");
         cycleIntakeWhileShooting = () ->
             new CycleIntake(rackAndPinion)
                 .alongWith(Commands.startEnd(() -> isCyclingIntake = true, () -> isCyclingIntake = false))
+                .until(() -> stopCyclingRequested)
+                .beforeStarting(() -> stopCyclingRequested = false)
                 .withName("cycleIntakeWhileShooting");
         warmpupshooterMin = () ->
             new flyWheelCommand(flywheel, () -> Constants.ConstantShootingRanges.MIN_SHOOTING_DISTANCE)
@@ -214,7 +222,35 @@ public class RobotContainer {
         warmpupshooterAutoTrench = () ->
             new flyWheelCommand(flywheel, () -> Constants.ConstantShootingRanges.AUTO_TRENCH_SHOOTING_DISTANCE)
                 .withName("WarmpupshooterAutoTrench");
+        aimAtHub = () ->
+            new AimDriving(driveBase, driveController, RobotContainer::angleToHub)
+                .withName("Aim At Hub");
+        // spins up + aims, and feeds once ready (or after 1.5s so an auto never gets stuck waiting)
+        shootWhenReady = () ->
+            shoot.get().alongWith(
+                Commands.waitUntil(RobotContainer::readyToShoot).withTimeout(1.5)
+                    .andThen(feed.get()))
+                .withName("Shoot When Ready");
+        startRollers = () ->
+            Commands.runOnce(() -> rollers.setDutyCycle(RollerConstants.DUTY_CYCLE), rollers)
+                .withName("Start Rollers");
+        stopRollers = () ->
+            Commands.runOnce(rollers::stopMotor, rollers)
+                .withName("Stop Rollers");
         }
+
+    // Named commands only call the premade commands above; timeouts are per auto step.
+    public static void configureNamedCommands() {
+        NamedCommands.registerCommand("shoot to hub", shootWhenReady.get().withTimeout(6));
+        NamedCommands.registerCommand("aim to hub", aimAtHub.get().withTimeout(0.5));
+        NamedCommands.registerCommand("open intake", extendIntake.get().withTimeout(0.6));
+        NamedCommands.registerCommand("intake", intakeWithSlowDrive.get());
+        NamedCommands.registerCommand("eject", outtake.get().withTimeout(1));
+        NamedCommands.registerCommand("warm up shooter bump", warmpupshooterAutoBump.get());
+        NamedCommands.registerCommand("warm up shooter trench", warmpupshooterAutoTrench.get());
+        NamedCommands.registerCommand("start rollers", startRollers.get());
+        NamedCommands.registerCommand("stop rollers", stopRollers.get());
+    }
 
     public static void configureDefaultCommands() {
         hood.setDefaultCommand(new openHood(hood, () -> 0));
@@ -227,19 +263,19 @@ public class RobotContainer {
  
         driveController.L2().whileTrue(pass.get());
  
-        driveController.R1().whileTrue(shoot.get(). alongWith(feed.get()). alongWith(cycleIntakeWhileShooting.get()));
+        driveController.R1().whileTrue(shoot.get());
 
-        driveController.R1().and(RobotContainer::readyToShoot).whileTrue(feed.get());
+        driveController.R1().and(RobotContainer::readyToShoot).whileTrue(feed.get()).whileTrue(cycleIntakeWhileShooting.get());
  
         driveController.triangle().whileTrue(outtake.get());
  
         driveController.square().onTrue(
             Commands.runOnce(() -> {
                 if (isCyclingIntake) {
-                    CommandScheduler.getInstance().cancel(cycleIntakeWhileShooting.get());
+                    stopCyclingRequested = true; 
                 }
-                else if (!isCyclingIntake) {
-                    toggleIntake.get();
+                else {
+                    CommandScheduler.getInstance().schedule(toggleIntake.get());
                 }
             })
         ); 
@@ -305,6 +341,12 @@ public class RobotContainer {
         sideChooser.addOption("left", "left");
 
         SmartDashboard.putData("sideChooser",sideChooser.getSendableChooser());
+
+     
+        preWarm = new LoggedDashboardChooser<>("preWarm?");
+        preWarm.addDefaultOption("OFF", "OFF");
+        preWarm.addOption("ON", "ON");
+        SmartDashboard.putData("preWarm?", preWarm.getSendableChooser());
     }
 
     private static void updateFieldFromAuto(String autoName) {
@@ -457,16 +499,11 @@ public class RobotContainer {
         brownoutBattery.set(RobotController.isBrownedOut());
     }
     public static boolean getPreWarm() {
-        return preWarm.get().equals("ON");
+        return preWarm != null && "ON".equals(preWarm.get()); 
     }
- 
+
     public static void updateElastic() {
         Alliance alliance = Robot.isRedAlliance ? Alliance.Red : Alliance.Blue;
-        preWarm = new LoggedDashboardChooser<>("preWarm?");
-        preWarm.addDefaultOption("OFF", "OFF");
-        preWarm.addOption("ON", "ON");
-        SmartDashboard.putData("preWarm?",preWarm.getSendableChooser());
-
         SmartDashboard.putNumber("Battery Voltage", RobotController.getBatteryVoltage());
         SmartDashboard.putNumber("Robot Velocity", driveBase.getVelocity());
         SmartDashboard.putNumber("Match Time", Timer.getMatchTime());

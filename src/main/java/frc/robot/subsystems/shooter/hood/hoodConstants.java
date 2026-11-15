@@ -6,7 +6,7 @@ import frc.util.PIDFGains;
 public class hoodConstants {
     public static final ControllerLocation CONTROLLER_LOCATION = ControllerLocation.RIO;
     public static final PIDFGains PID = new PIDFGains(0.05, 0, 0);
-    public static final int MOTOR_ID = 0;
+    public static final int MOTOR_ID = 0; // TODO: real CAN ID (0 is shared with the pinion and funnel motors)
     public static final int CURRENT_LIMIT = 80;
     public static final int CURRENT_THRESHOLD = 100;
     public static final boolean IS_INVERTED = false;

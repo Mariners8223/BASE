@@ -9,7 +9,10 @@ public class rackAndPinionIOReal implements rackAndPinionIO {
     private final MarinersTalonFX pinionMotor;
 
     public rackAndPinionIOReal(){
-        pinionMotor = new MarinersTalonFX("pinionMotor", rackAndPinionConstants.CONTROLLER_LOCATION, rackAndPinionConstants.motorID);
+        // FIX: added PID gains. extendTo() uses Position mode, which throws a NullPointerException
+        // ("PID control on mode requires pid gains") when the motor has no gains.
+        pinionMotor = new MarinersTalonFX("pinionMotor", rackAndPinionConstants.CONTROLLER_LOCATION,
+                rackAndPinionConstants.motorID, rackAndPinionConstants.PID);
         pinionMotor.setCurrentLimits(rackAndPinionConstants.currentLimit, rackAndPinionConstants.currentThreshhold);
         pinionMotor.setProfile(new Constraints(0.405, 0.2));
     }

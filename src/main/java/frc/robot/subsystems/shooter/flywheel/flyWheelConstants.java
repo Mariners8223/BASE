@@ -11,19 +11,19 @@ import frc.util.MarinersController.MarinersTalonFX;
 public class flyWheelConstants {
     public static final ControllerLocation CONTROLLER_LOCATION = ControllerLocation.RIO;
     public static final Translation2d ROBOT_TO_SHOOTER = new Translation2d(0.0, 0.0);
-    public static final int MOTOR_ID = 8;
-    public static final int SEC_MOTOR_ID = 24;
+    public static final int MOTOR_ID = 8; // TODO: real CAN ID - 8 is also used by the intake rollers (RollerConstants)
+    public static final int SEC_MOTOR_ID = 24; // TODO: real CAN ID - 24 is also used by the intake rollers (RollerConstants)
     public static final boolean IS_INVERTED = false;
     public static final boolean IS_FOLLOWER_INVERTED_FROM_LEAD = true; 
 
-    public static final double GEAR_RATIO = 3;
+    public static final double GEAR_RATIO = 3; // TODO: check. With ratio 3 and KV 0.36, 12V tops out near 2000 RPM, but SHOT_TABLE asks for 2500-3870
     public static final int CURRENT_LIMIT = 80;
     public static final int CURRENT_THRESHOLD = 100;
     public static final double KS = 0.1; 
     public static final double KV = 0.36;  
     public static final PIDFGains PID = new PIDFGains(0.05, 0, 0, KV);
     public static final double RPM_TOLERANCE = 100;
-    public static final double CURRENT_WHEN_SHOOTING = 115;
+    public static final double CURRENT_WHEN_SHOOTING = 115; // TODO: above the 80A stator CURRENT_LIMIT, so it can never trigger - set from logs (~50-60A?)
     public static double getCurrent(MarinersTalonFX motor) {
         return Math.abs(motor.getMotor().getStatorCurrent().getValueAsDouble());
     }

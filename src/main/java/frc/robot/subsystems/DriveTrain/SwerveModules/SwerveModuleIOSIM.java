@@ -111,7 +111,7 @@ public class SwerveModuleIOSIM extends SwerveModuleIO {
 
     @Override
     void endDriveCalibration() {
-        driveMotor.startPIDTuning();
+        driveMotor.stopPIDTuning(); // FIX: was startPIDTuning() (copy-paste), so "stop" never stopped
     }
 
     @Override
@@ -121,7 +121,7 @@ public class SwerveModuleIOSIM extends SwerveModuleIO {
 
     @Override
     void endSteerCalibration() {
-        steerMotor.startPIDTuning();
+        steerMotor.stopPIDTuning(); // FIX: was startPIDTuning() (copy-paste), so "stop" never stopped
     }
 
 

@@ -20,7 +20,8 @@ public class kickerIOReal implements kickerIO {
 
     @Override
     public void setDutyCycle(double dutyCycle){
-        dutyCycle = kickerConstants.DUTY_CYCLE;
+        // FIX: removed "dutyCycle = kickerConstants.DUTY_CYCLE;" - it overwrote every value with 0.8,
+        // so stop() (which sends 0) actually kept the kicker running.
         leadMotor.setDutyCycle(dutyCycle);
     }
 

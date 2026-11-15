@@ -15,7 +15,6 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.pathplanner.lib.util.PathPlannerLogging;
-import com.revrobotics.util.StatusLogger;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.net.WebServer;
@@ -40,32 +39,37 @@ public class Robot extends LoggedRobot {
         Logger.recordMetadata("ProjectName", "MyProject");
 
         if (isReal()) {
-            Logger.addDataReceiver(new WPILOGWriter()); // Log to a USB stick ("/U/logs")
-            Logger.addDataReceiver(new NT4Publisher()); // Publish data to NetworkTables
+            Logger.addDataReceiver(new WPILOGWriter()); 
+            Logger.addDataReceiver(new NT4Publisher()); 
         }
         else {
-            setUseTiming(false); // Run as fast as possible
-            String logPath = LogFileUtil.findReplayLog(); // Pull the replay log from AdvantageScope (or prompt the user)
-            Logger.setReplaySource(new WPILOGReader(logPath)); // Read replay log
-            Logger.addDataReceiver(new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_sim"))); // Save outputs to a new log
+            setUseTiming(false); 
+            String logPath = LogFileUtil.findReplayLog(); 
+            Logger.setReplaySource(new WPILOGReader(logPath)); 
+            Logger.addDataReceiver(new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_sim")));
         }
 
         SignalLogger.enableAutoLogging(false);
         DataLogManager.stop();
 
-        isRedAlliance = DriverStation.getAlliance().isPresent() && DriverStation.getAlliance().get() == DriverStation.Alliance.Red;
-        // isRedAlliance = true;
+        updateAlliance();
 
         Logger.start();
         new RobotContainer();
 
-       PathPlannerLogging.setLogTargetPoseCallback(pose -> Logger.recordOutput("Pathplanner/Current Path Target", pose));
+        PathPlannerLogging.setLogTargetPoseCallback(pose -> Logger.recordOutput("Pathplanner/Current Path Target", pose));
         PathPlannerLogging.setLogActivePathCallback(path -> Logger.recordOutput("Pathplanner/Current Path", path.toArray(new Pose2d[0])));
 
         SmartDashboard.putData("Field", field);
         SmartDashboard.putData("Command Scheduler", CommandScheduler.getInstance());
 
         Elastic.selectTab(1);
+    }
+
+
+    private static void updateAlliance() {
+        isRedAlliance = DriverStation.getAlliance().isPresent()
+                && DriverStation.getAlliance().get() == DriverStation.Alliance.Red;
     }
 
     public static void clearObjectPoseField(String name) {
@@ -88,14 +92,25 @@ public class Robot extends LoggedRobot {
     @Override
     public void robotPeriodic() {
         CommandScheduler.getInstance().run();
+
+        RobotContainer.pollAlerts();
+        RobotContainer.updateElastic();
+    }
+
+    @Override
+    public void disabledPeriodic() {
+        updateAlliance();
     }
 
     @Override
     public void autonomousInit() {
         Elastic.selectTab(1);
-        isRedAlliance = DriverStation.getAlliance().isPresent() && DriverStation.getAlliance().get() == DriverStation.Alliance.Red;
-        //isRedAlliance = true;
+        updateAlliance();
 
+        autonomousCommand = RobotContainer.getAuto();
+        if (autonomousCommand != null) {
+            CommandScheduler.getInstance().schedule(autonomousCommand);
+        }
     }
 
     @Override
@@ -105,6 +120,7 @@ public class Robot extends LoggedRobot {
 
     @Override
     public void teleopInit() {
+        updateAlliance(); 
         Robot.clearObjectPoseField("AutoPath");
         if (autonomousCommand != null) {
             autonomousCommand.cancel();
