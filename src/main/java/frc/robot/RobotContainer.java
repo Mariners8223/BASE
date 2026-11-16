@@ -143,7 +143,7 @@ public class RobotContainer {
         vision = new Vision(driveBase::addVisionMeasurement, driveBase::getPose, driveBase::reset);
  
         configureCommands();
-        configureNamedCommands(); // FIX: must run before configureChoosers(), which builds the PathPlannerAutos
+        configureNamedCommands(); 
         configureDefaultCommands();
         configureMechanismBindings();
         configureDriveBindings();
@@ -198,10 +198,10 @@ public class RobotContainer {
                 new AimDriving(driveBase, driveController, RobotContainer::getShootingAngle)
             ).withName("Shoot");
         shootWhileAuto = () -> Commands.runOnce(() -> {
-        if (areBallsGoingIntoShooter()) {
-            CommandScheduler.getInstance().schedule(shoot.get());
-        } 
-        });
+            if (areBallsGoingIntoShooter()) {
+                CommandScheduler.getInstance().schedule(shoot.get());
+            } 
+            });
 
         feed = () ->
             new transferOn(transfer)
@@ -225,7 +225,6 @@ public class RobotContainer {
         aimAtHub = () ->
             new AimDriving(driveBase, driveController, RobotContainer::angleToHub)
                 .withName("Aim At Hub");
-        // spins up + aims, and feeds once ready (or after 1.5s so an auto never gets stuck waiting)
         shootWhenReady = () ->
             shoot.get().alongWith(
                 Commands.waitUntil(RobotContainer::readyToShoot).withTimeout(1.5)
@@ -239,7 +238,6 @@ public class RobotContainer {
                 .withName("Stop Rollers");
         }
 
-    // Named commands only call the premade commands above; timeouts are per auto step.
     public static void configureNamedCommands() {
         NamedCommands.registerCommand("shoot to hub", shootWhenReady.get().withTimeout(6));
         NamedCommands.registerCommand("aim to hub", aimAtHub.get().withTimeout(0.5));
