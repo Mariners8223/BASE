@@ -9,16 +9,16 @@ public interface ShooterIO {
 
     }
     //not good
-    void setDutyCycle(double desired_dutyCycle); //needs a rework probably
-    void setVelocity(double desired_Velocity); //needs a rework probably
-    void setPoint(double desired_Angle); //done
+    void setDutyCycle(double desired_dutyCycle); //done(?)
+    void setVelocity(double desired_Velocity); //done
+    //void setAngle(double desired_Angle); //done
 
     double getVelocity();//done
-    double getAcceleration();
-    double getPoint();
+    double getAcceleration();//done
+    //double getAngle();
 
-    void shooterVision();
+    //void shooterVision();
 
-    void update(ShooterInputs inputs);
+    void update(ShooterInputs inputs);//done
 
 }

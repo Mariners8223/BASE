@@ -11,15 +11,22 @@ public class ShooterIOReal implements ShooterIO {
   MarinersTalonFX followMotor;
   MarinersTalonFX hoodMotor;
   public ShooterIOReal(){
-    leadMotor = new MarinersTalonFX("shooter_Motor", ControllerLocation.RIO, 123);
-    followMotor = new MarinersTalonFX("shooter_Follow_Motor",    ControllerLocation.RIO, 1234);
-    followMotor.setMotorAsFollower(leadMotor, true);
-    hoodMotor = new MarinersTalonFX("hood_motor", ControllerLocation.RIO, 12345);
+    leadMotor = new MarinersTalonFX("shooter_Motor", ShooterConstants.CONTROLLER_LOCATION, ShooterConstants.LEAD_MOTOR_ID);
+    leadMotor.setMotorInverted(ShooterConstants.IS_LEAD_INVERT);
+    followMotor = new MarinersTalonFX("shooter_Follow_Motor",    ShooterConstants.CONTROLLER_LOCATION, ShooterConstants.FOLLOW_MOTOR_ID);
+    followMotor.setMotorAsFollower(leadMotor,ShooterConstants.IS_FOLLOW_INVERT);
+    
   }
   @Override
   public void setDutyCycle(double desired_dutyCycle){
     leadMotor.setDutyCycle(ShooterConstants.desired_dutyCycle);
+    //leadMotor.setReference(desired_dutyCycle , ControlMode.DutyCycle);
 
+  }
+
+  @Override
+  public double getAcceleration(){
+    return leadMotor.getAcceleration();
   }
 
   @Override
@@ -29,21 +36,23 @@ public class ShooterIOReal implements ShooterIO {
 
   @Override
   public void setVelocity(double desired_Velocity){
-    leadMotor.setDutyCycle(desired_Velocity);
+    leadMotor.setReference(desired_Velocity, ControlMode.Velocity);
 
   }
 
+  // @Override
+  // public void setAngle(double desired_Angle){
+  //   hoodMotor.setReference(desired_Angle / 360 , ControlMode.Position);
+    
+
+  // }
+  // @Override 
+  // public double getAngle(){
+    
+
+  // }
   @Override
-  public void setPoint(double desired_Angle){
-    hoodMotor.setReference(desired_Angle / 360 , ControlMode.Position);
-    
-
-  }
-
-  void update(ShooterInputs inputs){
-    @AutoLog
-    
-  }
+  public void update(ShooterInputs shooterInputs){}
 
 
 
