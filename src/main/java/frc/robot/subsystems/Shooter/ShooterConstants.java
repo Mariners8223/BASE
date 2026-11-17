@@ -15,4 +15,9 @@ public class ShooterConstants {
     public static final boolean IS_LEAD_INVERT = false;
     public static final boolean IS_FOLLOW_INVERT = true;
 
+    public static final double GEAR_RATIO = 9;
+    public static final double GEAR_REDUCTION = 1 / GEAR_RATIO;
+
+    
+
 }
