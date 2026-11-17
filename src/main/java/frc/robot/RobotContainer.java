@@ -100,7 +100,7 @@ public class RobotContainer {
  
     public static boolean intakeExtended = false;
     public static boolean isCyclingIntake = false;
-    public static boolean stopCyclingRequested = false; // FIX: lets the square button stop the running cycle command
+    public static boolean stopCyclingRequested = false;
     public static boolean isShooting = false;
 
     public static LoggedDashboardChooser<Command> autoChooser;
@@ -108,7 +108,7 @@ public class RobotContainer {
     public static LoggedDashboardChooser<String> preWarm;
     public static HashMap<String, Command> mirroredAutoMap = new HashMap<>();
 
- 
+
     //#region Premade Commands
     public static Supplier<Command> intakeWithSlowDrive;
     public static Supplier<Command> extendIntake;

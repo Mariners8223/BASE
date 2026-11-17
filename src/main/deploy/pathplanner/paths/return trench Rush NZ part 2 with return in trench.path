@@ -8,8 +8,8 @@
       },
       "prevControl": null,
       "nextControl": {
-        "x": 3.22725,
-        "y": 0.2931333333333326
+        "x": 2.8880378250591012,
+        "y": 1.522702915681641
       },
       "isLocked": false,
       "linkedName": "Rush NZ Return Bump End"
@@ -20,8 +20,8 @@
         "y": 0.5075111111111108
       },
       "prevControl": {
-        "x": 3.6933581109421687,
-        "y": 1.0277246497013717
+        "x": 3.259700551615445,
+        "y": 0.5649566587864456
       },
       "nextControl": null,
       "isLocked": false,
@@ -32,8 +32,8 @@
   "constraintZones": [
     {
       "name": "Constraints Zone",
-      "minWaypointRelativePos": 0.6,
-      "maxWaypointRelativePos": 1,
+      "minWaypointRelativePos": 0.13875419619544918,
+      "maxWaypointRelativePos": 0.7489742633345817,
       "constraints": {
         "maxVelocity": 6.0,
         "maxAcceleration": 6.0,
@@ -59,7 +59,7 @@
     "rotation": 90.0
   },
   "reversed": false,
-  "folder": "Rush NZ",
+  "folder": null,
   "idealStartingState": {
     "velocity": 0,
     "rotation": -129.7225912514285
