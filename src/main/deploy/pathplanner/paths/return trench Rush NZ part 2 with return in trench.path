@@ -8,24 +8,24 @@
       },
       "prevControl": null,
       "nextControl": {
-        "x": 2.8880378250591012,
-        "y": 1.522702915681641
+        "x": 3.016690307328605,
+        "y": 1.4869661150512217
       },
       "isLocked": false,
       "linkedName": "Rush NZ Return Bump End"
     },
     {
       "anchor": {
-        "x": 3.768066666666667,
-        "y": 0.5075111111111108
+        "x": 3.5731777777777776,
+        "y": 0.49776666666666647
       },
       "prevControl": {
-        "x": 3.259700551615445,
-        "y": 0.5649566587864456
+        "x": 3.038132387706855,
+        "y": 1.1939243498817986
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": "start trench low"
+      "linkedName": "Rush NZ Collect Start"
     }
   ],
   "rotationTargets": [],
@@ -56,7 +56,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 90.0
+    "rotation": 89.98237988495252
   },
   "reversed": false,
   "folder": null,
