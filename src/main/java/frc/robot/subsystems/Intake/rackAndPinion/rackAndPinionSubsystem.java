@@ -4,6 +4,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.Intake.rackAndPinion.rackAndPinionConstants.rackAndPinionState;
 
 import org.littletonrobotics.junction.AutoLog;
+import org.littletonrobotics.junction.Logger;
 
 public class rackAndPinionSubsystem extends SubsystemBase {
     rackAndPinionIO io;
@@ -32,6 +33,9 @@ public class rackAndPinionSubsystem extends SubsystemBase {
     @Override
     public void periodic() {
         io.update(rackinputs);
+        //fix: CHANGE: added Logger.processInputs. REASON: the inputs were read but never logged, so the rack position,
+        // current and stall flags were missing from the logs and AdvantageKit replay could not reproduce this subsystem.
+        Logger.processInputs("Intake/RackAndPinion", rackinputs);
         if (rackinputs.currentStalled) {
             io.stop();
         }

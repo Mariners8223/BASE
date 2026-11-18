@@ -9,8 +9,6 @@ public class rackAndPinionIOReal implements rackAndPinionIO {
     private final MarinersTalonFX pinionMotor;
 
     public rackAndPinionIOReal(){
-        // FIX: added PID gains. extendTo() uses Position mode, which throws a NullPointerException
-        // ("PID control on mode requires pid gains") when the motor has no gains.
         pinionMotor = new MarinersTalonFX("pinionMotor", rackAndPinionConstants.CONTROLLER_LOCATION,
                 rackAndPinionConstants.motorID, rackAndPinionConstants.PID);
         pinionMotor.setCurrentLimits(rackAndPinionConstants.currentLimit, rackAndPinionConstants.currentThreshhold);
@@ -20,6 +18,9 @@ public class rackAndPinionIOReal implements rackAndPinionIO {
         pinionMotor.resetMotorEncoder();
     }
     public void extendTo(double PinionRotation) {
+        //fix: NOTE (not changed): in Position mode the setProfile(...) in the constructor is ignored - MarinersController only
+        // uses the profile in ControlMode.ProfiledPosition. Do not just switch: with Constraints(0.405, 0.2) a 6-rotation
+        // extend would take ~15 s. Either delete setProfile or raise the constraints, then use ProfiledPosition.
         pinionMotor.setReference(PinionRotation, ControlMode.Position);
     }
     public void update(rackAndPinionInputs rackinputs) {

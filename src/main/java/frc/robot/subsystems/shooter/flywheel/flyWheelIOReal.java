@@ -27,10 +27,6 @@ public class flyWheelIOReal implements flyWheelIO {
     @Override
     public void setRPM(double RPM) {
         leadFlyWheel.setReference(RPM / 60.0, ControlMode.Velocity);
-        // FIX: removed followFlyWheel.setReference(...). Commanding the follower takes it OUT of follower
-        // mode (it then ignores IS_FOLLOWER_INVERTED_FROM_LEAD), and stop() only stopped the lead,
-        // so the follower kept spinning. The follower now just follows the lead.
-
     }
 
     @Override

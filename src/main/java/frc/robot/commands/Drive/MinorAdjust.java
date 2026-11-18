@@ -55,7 +55,10 @@ public class MinorAdjust extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    Rotation2d gyroAngle = driveBase.getRotation2d();
+    //fix: CHANGE: getRotation2d() (raw gyro) -> getHeading() (field heading). REASON: same as DriveCommand.
+    //fix: PREVIOUS VERSION (before the fix):
+    //    Rotation2d gyroAngle = driveBase.getRotation2d();
+    Rotation2d gyroAngle = driveBase.getHeading();
     if(Robot.isRedAlliance) gyroAngle = gyroAngle.plus(Rotation2d.fromDegrees(180));
 
     ChassisSpeeds fieldRelative = new ChassisSpeeds(direction.getVX(), direction.getVY(), 0);

@@ -168,12 +168,18 @@ public class DriveBase extends SubsystemBase {
             else
                 currentPose = new Pose2d(currentPose.getX(), currentPose.getY(), new Rotation2d());
 
-            SwerveModulePosition[] positions = new SwerveModulePosition[4];
-            for (int i = 0; i < 4; i++) positions[i] = modules[i].modulePeriodic();
-
-            gyro.reset(currentPose.getRotation());
-
-            poseEstimator.resetPosition(currentPose.getRotation(), positions, currentPose);
+            //fix: CHANGE: reuses reset(), which no longer writes to the Pigeon (see reset() below).
+            // REASON: same fix as reset(). The heading offset lives in the pose estimator, so field-relative driving
+            // (which now uses getHeading()) and vision stay in sync.
+            //fix: PREVIOUS VERSION (before the fix):
+            //    SwerveModulePosition[] positions = new SwerveModulePosition[4];
+            //    for (int i = 0; i < 4; i++) positions[i] = modules[i].modulePeriodic();
+            //
+            //    gyro.reset(currentPose.getRotation());
+            //
+            //    poseEstimator.resetPosition(currentPose.getRotation(), positions, currentPose);
+            //fix: END PREVIOUS VERSION
+            reset(currentPose);
 
         }).withName("Reset Only Direction").ignoringDisable(true);
     }
@@ -190,14 +196,32 @@ public class DriveBase extends SubsystemBase {
      * @param newPose the new pose the robot should be in
      */
     public void reset(Pose2d newPose) {
-        SwerveModulePosition[] positions = new SwerveModulePosition[4];
-        for (int i = 0; i < 4; i++) positions[i] = modules[i].modulePeriodic();
+        //fix: CHANGE: the gyro is no longer reset. resetPosition() gets the CURRENT gyro reading, so the estimator stores
+        // the offset in software (the same idea as 6328's gyroOffset).
+        // REASON: vision used to call this method, and gyro.reset() overwrote the Pigeon with vision's heading. One
+        // bad frame left the heading (and field-relative driving) wrong for the rest of the match. Also,
+        // Pigeon setYaw() is a CAN call whose new value shows up a loop later, so the very next update()
+        // read the old yaw and the heading glitched.
+        //
+        //fix: CHANGE: uses the module positions from this loop's periodic() instead of calling modulePeriodic() again.
+        // REASON: calling modulePeriodic() here ran Logger.processInputs a second time in the same loop, which
+        // breaks AdvantageKit replay. Calling Logger.processInputs(getName(), inputs) here had the same problem,
+        // so it was removed too.
+        //fix: PREVIOUS VERSION (before the fix):
+        //    SwerveModulePosition[] positions = new SwerveModulePosition[4];
+        //    for (int i = 0; i < 4; i++) positions[i] = modules[i].modulePeriodic();
+        SwerveModulePosition[] currentPositions = new SwerveModulePosition[4];
+        for (int i = 0; i < 4; i++) currentPositions[i] = positions[i].copy();
 
-        poseEstimator.resetPosition(newPose.getRotation(), positions, newPose);
+        //fix: PREVIOUS VERSION (before the fix):
+        //    poseEstimator.resetPosition(newPose.getRotation(), positions, newPose);
+        poseEstimator.resetPosition(gyro.getRotation2d(), currentPositions, newPose);
 
-        gyro.reset(newPose.getRotation());
+        //fix: PREVIOUS VERSION (before the fix):
+        //    gyro.reset(newPose.getRotation());
         currentPose = newPose;
-        Logger.processInputs(getName(), inputs);
+        //fix: PREVIOUS VERSION (before the fix):
+        //    Logger.processInputs(getName(), inputs);
     }
 
     /**
@@ -219,21 +243,57 @@ public class DriveBase extends SubsystemBase {
     }
 
     /**
-     * returns the reported Rotation by the Navx
+     * returns the RAW rotation reported by the gyro.
+     * //fix: CHANGE: doc only. Since the gyro is no longer reset by reset(), this raw value has an unknown offset from the
+     * field. For anything field-relative use {@link #getHeading()}.
      *
-     * @return Rotation2d reported by the Navx
+     * @return Rotation2d reported by the gyro (raw, not field-relative)
      */
     public Rotation2d getRotation2d() {
         return gyro.getRotation2d();
     }
 
     /**
+     * //fix: CHANGE: new. The robot's FIELD heading from the pose estimator (gyro + software offset + multi-tag vision).
+     * REASON: field-relative driving used to read the raw gyro. Now it uses the same heading that vision
+     * corrects, so a wrong heading heals instead of staying wrong.
+     *
+     * @return the field-relative heading of the robot (CCW positive, 0 = facing the red alliance wall)
+     */
+    public Rotation2d getHeading() {
+        return currentPose.getRotation();
+    }
+
+    /**
      * returns the current angle of the robot
+     * //fix: CHANGE: now uses the field heading instead of the raw gyro yaw (the raw gyro no longer matches the field).
      *
      * @return the angle of the robot (left is positive) IN DEGREES
      */
     public double getAngle() {
-        return -gyro.getYaw();
+        //fix: PREVIOUS VERSION (before the fix):
+        //    return -gyro.getYaw();
+        return getHeading().getDegrees();
+    }
+
+    /**
+     * //fix: CHANGE: new, used by Vision to throw out frames while spinning fast.
+     *
+     * @return the yaw rate in degrees per second (right is positive)
+     */
+    public double getYawRateDegPerSec() {
+        return gyro.getYawRate();
+    }
+
+    /**
+     * //fix: CHANGE: new, used by Vision to throw out frames while the robot is tilted (driving over the bump).
+     * Check "Vision/Tilt deg" in the log reads about 0 on a flat floor. If the Pigeon is mounted tilted,
+     * set its MountPose config, otherwise every vision frame would be rejected as "Robot Tilted".
+     *
+     * @return max(|pitch|, |roll|) in degrees
+     */
+    public double getTiltDeg() {
+        return Math.max(Math.abs(gyro.getPitch()), Math.abs(gyro.getRoll()));
     }
 
     public double getVelocity(){
@@ -263,7 +323,10 @@ public class DriveBase extends SubsystemBase {
     public ChassisSpeeds getAbsoluteChassisSpeeds() {
         ChassisSpeeds speeds = getChassisSpeeds();
 
-        return ChassisSpeeds.fromRobotRelativeSpeeds(speeds, getRotation2d());
+        //fix: CHANGE: getRotation2d() -> getHeading(). REASON: field-relative needs the field heading, not the raw gyro.
+        //fix: PREVIOUS VERSION (before the fix):
+        //    return ChassisSpeeds.fromRobotRelativeSpeeds(speeds, getRotation2d());
+        return ChassisSpeeds.fromRobotRelativeSpeeds(speeds, getHeading());
     }
 
     /**
@@ -528,8 +591,13 @@ public class DriveBase extends SubsystemBase {
     @Override
     public void periodic() {
         for (int i = 0; i < 4; i++) {
-            inputs.currentStates[i] = modules[i].getCurrentState();
+            //fix: CHANGE: modulePeriodic() (which reads the sensors) now runs BEFORE getCurrentState().
+            // REASON: the order was reversed. Any IO that creates a new state object in updateInputs (sim/replay)
+            // gave a module state one loop (20 ms) old. Reading after the update is always correct.
             positions[i] = modules[i].modulePeriodic();
+            inputs.currentStates[i] = modules[i].getCurrentState();
+            //fix: PREVIOUS VERSION (before the fix):
+            //    positions[i] = modules[i].modulePeriodic();
 
             moduleDeltas[i] = new SwerveModulePosition(
                     positions[i].distanceMeters - previousPositions[i].distanceMeters,

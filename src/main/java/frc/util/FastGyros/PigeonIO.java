@@ -15,6 +15,9 @@ public class PigeonIO extends GyroIO{
 
     private final Pigeon2 pigeon;
 
+    /** //fix: CHANGE: new. Converts the Pigeon's g units to m/s^2 (see updateInputs). */
+    private static final double G_TO_METERS_PER_SECOND_SQUARED = 9.80665;
+
     private final BaseStatusSignal[] signals;
 
     private final StatusSignal<Angle> yaw;
@@ -37,12 +40,20 @@ public class PigeonIO extends GyroIO{
         accelerationY = pigeon.getAccelerationY();
         yawRate = pigeon.getAngularVelocityZWorld();
 
-        yaw.setUpdateFrequency(50);
+        //fix: CHANGE: yaw and yawRate 50 Hz -> 100 Hz.
+        // REASON: with a 50 Hz signal and a 50 Hz robot loop, the heading could be up to 20 ms old when read. At 100 Hz
+        // it is at most 10 ms old (the max CTRE recommends on the roboRIO CAN bus). This makes odometry and the
+        // heading-aided vision solve more accurate while turning. Pitch/roll/accel stay at 50 Hz (only used for filtering).
+        //fix: PREVIOUS VERSION (before the fix):
+        //    yaw.setUpdateFrequency(50);
+        yaw.setUpdateFrequency(100);
         pitch.setUpdateFrequency(50);
         roll.setUpdateFrequency(50);
         accelerationX.setUpdateFrequency(50);
         accelerationY.setUpdateFrequency(50);
-        yawRate.setUpdateFrequency(50);
+        //fix: PREVIOUS VERSION (before the fix):
+        //    yawRate.setUpdateFrequency(50);
+        yawRate.setUpdateFrequency(100);
 
         pigeon.optimizeBusUtilization();
 
@@ -67,8 +78,14 @@ public class PigeonIO extends GyroIO{
         inputs.pitch = this.pitch.getValueAsDouble();
         inputs.roll = this.roll.getValueAsDouble();
         inputs.yawRate = -this.yawRate.getValueAsDouble();
-        inputs.accelerationX = this.accelerationX.getValueAsDouble();
-        inputs.accelerationY = this.accelerationY.getValueAsDouble();
+        //fix: CHANGE: multiply by 9.80665.
+        // REASON: the Pigeon 2 reports acceleration in g, but GyroIO (and SimGyroIO) promise m/s^2,
+        // so on the real robot the value was 9.8x too small.
+        //fix: PREVIOUS VERSION (before the fix):
+        //    inputs.accelerationX = this.accelerationX.getValueAsDouble();
+        //    inputs.accelerationY = this.accelerationY.getValueAsDouble();
+        inputs.accelerationX = this.accelerationX.getValueAsDouble() * G_TO_METERS_PER_SECOND_SQUARED;
+        inputs.accelerationY = this.accelerationY.getValueAsDouble() * G_TO_METERS_PER_SECOND_SQUARED;
     }
 
     @Override

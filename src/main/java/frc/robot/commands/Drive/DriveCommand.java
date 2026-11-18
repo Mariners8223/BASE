@@ -74,7 +74,12 @@ public class DriveCommand extends Command {
 
         ChassisSpeeds fieldRelativeSpeeds = new ChassisSpeeds(leftX, leftY, rightX);
 
-        Rotation2d gyroAngle = driveBase.getRotation2d();
+        //fix: CHANGE: getRotation2d() (raw gyro) -> getHeading() (pose-estimator field heading).
+        // REASON: the raw gyro is no longer reset to the field, and the estimator heading is the one vision can
+        // correct. Field-relative driving now heals after a bad heading instead of staying skewed all match.
+        //fix: PREVIOUS VERSION (before the fix):
+        //    Rotation2d gyroAngle = driveBase.getRotation2d();
+        Rotation2d gyroAngle = driveBase.getHeading();
 
         if(Robot.isRedAlliance) gyroAngle = gyroAngle.plus(Rotation2d.fromDegrees(180));
 

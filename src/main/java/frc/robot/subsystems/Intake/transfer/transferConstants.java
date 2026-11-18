@@ -13,7 +13,7 @@ public class transferConstants {
     public static final int CURRENT_LIMIT = 100;
     public static final int CURRENT_THRESHOLD = 80;
     public static final ControllerLocation FUNNEL_CONTROLLER_LOCATION = ControllerLocation.MOTOR;
-    public final static int FUNNEL_MOTOR_ID = 0; // TODO: real CAN ID (0 is shared with the hood and pinion motors)
+    public final static int FUNNEL_MOTOR_ID = 0; // TODO: real CAN ID 
     public static final Boolean isFunnelInverted = false;
     public static final int funnel_CURRENT_LIMIT = 100;
     public static final int funnel_CURRENT_THRESHOLD = 80;

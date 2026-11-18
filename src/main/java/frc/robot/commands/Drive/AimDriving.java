@@ -64,7 +64,11 @@ public class AimDriving extends Command {
 
         ChassisSpeeds fieldRelativeSpeeds = new ChassisSpeeds(leftX, leftY, thetaController.calculate(driveBase.getPose().getRotation().getRadians()));
 
-        Rotation2d gyroAngle = driveBase.getRotation2d();
+        //fix: CHANGE: getRotation2d() -> getHeading().
+        // REASON: DriveBase.reset() no longer resets the gyro, so the raw gyro is no longer the field heading. getHeading() is.
+        //fix: PREVIOUS VERSION (before the fix):
+        //    Rotation2d gyroAngle = driveBase.getRotation2d();
+        Rotation2d gyroAngle = driveBase.getHeading();
         if(Robot.isRedAlliance) gyroAngle = gyroAngle.plus(Rotation2d.fromDegrees(180));
 
         ChassisSpeeds robotRelativeSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(fieldRelativeSpeeds, gyroAngle);

@@ -7,7 +7,9 @@ package frc.robot.subsystems.Vision;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Optional;
-import java.util.function.Consumer;
+//fix: PREVIOUS VERSION (before the fix):
+//    import java.util.function.Consumer;
+import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
 import edu.wpi.first.math.Matrix;
@@ -16,6 +18,7 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -30,20 +33,50 @@ import frc.robot.Constants.RobotType;
 import frc.robot.subsystems.Vision.VisionConstants.CameraConstants;
 
 
+/*
+ * //fix: ===== WHY THIS CLASS WAS CHANGED (summary) =====
+ * Bug: "if vision is wrong once, it is wrong the whole match".
+ * Cause: whenever a frame had 3+ tags, vision called resetOdometryCallback -> DriveBase.reset(), which ALSO
+ * overwrote the Pigeon gyro with the heading vision had just calculated. Every measurement used a heading
+ * std dev of 999, so nothing could ever fix the heading afterwards, and field-relative driving reads the gyro.
+ * Fix (what 6328 / 254 / 2910 / 1678 do): vision never resets anything. It only feeds the Kalman filter with
+ * addVisionMeasurement. Multi-tag frames get a real heading std dev, so a wrong heading heals over a few
+ * seconds. Single-tag frames are solved with the fused heading and give no heading of their own.
+ */
 public class Vision extends SubsystemBase {
     private final HashMap<VisionCamera, Alert> disconnectedAlerts = new HashMap<>();
-
-    private final Consumer<Pose2d> resetOdometryCallback;
+    //fix: PREVIOUS VERSION (before the fix):
+    //    private final Consumer<Pose2d> resetOdometryCallback;
 
     private final VisionCamera[] cameras;
 
     private final VisionConsumer poseConsumer;
-    private double lastOdometryResetTime = -1.0;
+
+    //fix: CHANGE: removed resetOdometryCallback and lastOdometryResetTime.
+    // REASON: this was the root cause (see the summary above). The pose is now only reset at known moments:
+    // the auto start pose (PathPlanner) and the driver's reset-heading button.
+
+    //fix: CHANGE: new inputs: the fused pose (for its heading), the yaw rate and the tilt.
+    // REASON: the heading is needed for the single-tag trig solve. The yaw rate and tilt are used to throw out
+    // frames taken while spinning fast or while tilted on the bump.
+    //fix: PREVIOUS VERSION (before the fix):
+    //    private double lastOdometryResetTime = -1.0;
+    private final Supplier<Pose2d> robotPoseSupplier;
+    private final DoubleSupplier yawRateDegPerSecSupplier;
+    private final DoubleSupplier tiltDegSupplier;
 
     /**
      * Creates a new Vision.
+     *
+     * @param poseConsumer             where accepted measurements go (DriveBase::addVisionMeasurement)
+     * @param robotPoseSupplier        the fused robot pose (DriveBase::getPose), its heading is used for single-tag solves
+     * @param yawRateDegPerSecSupplier the robot yaw rate in deg/s (sign doesn't matter)
+     * @param tiltDegSupplier          the robot tilt in degrees, max of |pitch| and |roll|
      */
-    public Vision(VisionConsumer poseConsumer, Supplier<Pose2d> referencePoseSupplier, Consumer<Pose2d> resetOdometryCallback) {
+    //fix: PREVIOUS VERSION (before the fix):
+    //    public Vision(VisionConsumer poseConsumer, Supplier<Pose2d> referencePoseSupplier, Consumer<Pose2d> resetOdometryCallback) {
+    public Vision(VisionConsumer poseConsumer, Supplier<Pose2d> robotPoseSupplier,
+                  DoubleSupplier yawRateDegPerSecSupplier, DoubleSupplier tiltDegSupplier) {
 
         int numOfCameras = CameraConstants.values().length;
 
@@ -52,14 +85,24 @@ public class Vision extends SubsystemBase {
         CameraConstants[] constants = CameraConstants.values();
 
         for (int i = 0; i < numOfCameras; i++) {
-            if(Constants.ROBOT_TYPE != RobotType.REPLAY) cameras[i] = new VisionCamera(constants[i], VisionConstants.FIELD_LAYOUT, referencePoseSupplier);
-            else cameras[i] = new VisionCamera(constants[i].cameraName);
+            //fix: PREVIOUS VERSION (before the fix):
+            //    if(Constants.ROBOT_TYPE != RobotType.REPLAY) cameras[i] = new VisionCamera(constants[i], VisionConstants.FIELD_LAYOUT, referencePoseSupplier);
+            //    else cameras[i] = new VisionCamera(constants[i].cameraName);
+            if(Constants.ROBOT_TYPE != RobotType.REPLAY) cameras[i] = new VisionCamera(constants[i], VisionConstants.FIELD_LAYOUT);
+            //fix: CHANGE: replay cameras now get their own constants.
+            // REASON: the replay constructor hard-coded FRONT_CAMERA, so in replay every camera used the front
+            // camera's std-dev factors, and replays did not match the real robot.
+            else cameras[i] = new VisionCamera(constants[i]);
 
             disconnectedAlerts.put(cameras[i], new Alert(cameras[i].cameraName + " Disconnected", AlertType.kWarning));
         }
-        this.resetOdometryCallback = resetOdometryCallback;
+        //fix: PREVIOUS VERSION (before the fix):
+        //    this.resetOdometryCallback = resetOdometryCallback;
 
         this.poseConsumer = poseConsumer;
+        this.robotPoseSupplier = robotPoseSupplier;
+        this.yawRateDegPerSecSupplier = yawRateDegPerSecSupplier;
+        this.tiltDegSupplier = tiltDegSupplier;
     }
 
     @Override
@@ -67,7 +110,19 @@ public class Vision extends SubsystemBase {
         ArrayList<Pose3d> allAcceptedPoses = new ArrayList<>();
         ArrayList<Pose3d> allRejectedPoses = new ArrayList<>();
 
+        //fix: CHANGE: new. Give the current fused heading to every camera before reading results.
+        // REASON: the trig solve looks up the heading at each frame's timestamp, so the buffer must be up to date.
+        double now = Timer.getFPGATimestamp();
+        var heading = robotPoseSupplier.get().getRotation();
+
+        //fix: CHANGE: new. Read the yaw rate and tilt once per loop.
+        double yawRate = Math.abs(yawRateDegPerSecSupplier.getAsDouble());
+        double tilt = Math.abs(tiltDegSupplier.getAsDouble());
+        Logger.recordOutput("Vision/Yaw Rate deg per sec", yawRate);
+        Logger.recordOutput("Vision/Tilt deg", tilt);
+
         for (VisionCamera camera : cameras) {
+            camera.camera.addHeadingData(now, heading);
             camera.update();
             camera.log();
 
@@ -78,8 +133,9 @@ public class Vision extends SubsystemBase {
             ArrayList<Pose3d> acceptedPoses = new ArrayList<>();
             ArrayList<Pose3d> rejectedPoses = new ArrayList<>();
             ArrayList<Translation3d> targetLocations = new ArrayList<>();
-
-            String rejectionReason = "";
+            //fix: PREVIOUS VERSION (before the fix):
+            //    String rejectionReason = "";
+            ArrayList<String> rejectionReasons = new ArrayList<>();
 
             for(int i = 0; i < camera.inputs.targetIDs.length; i++){
                 Optional<Pose3d> targetPose = VisionConstants.FIELD_LAYOUT.getTagPose(camera.inputs.targetIDs[i]);
@@ -90,35 +146,53 @@ public class Vision extends SubsystemBase {
             Logger.recordOutput("Vision/" + camera.cameraName + "/Target Locations", targetLocations.toArray(new Translation3d[0]));
 
             for (VisionIO.VisionFrame frame : camera.inputs.visionFrames) {
-                if (!frame.hasTarget()) continue;
+                //fix: PREVIOUS VERSION (before the fix):
+                //    if (!frame.hasTarget()) continue;
+                if (!frame.hasTarget() || frame.tagCount() <= 0) continue;
 
-                if (!checkPoseLocation(frame.robotPose())) {
+                //fix: CHANGE: the rejection reason is now really recorded (one per rejected frame).
+                // REASON: the old code called rejectionReason.concat(...) and threw the result away (Java strings
+                // can't be changed in place), so the logged reason was always "".
+                //fix: PREVIOUS VERSION (before the fix):
+                //    if (!checkPoseLocation(frame.robotPose())) {
+                String reason = getRejectionReason(frame, yawRate, tilt);
+
+                if (reason != null) {
                     rejectedPoses.add(frame.robotPose());
-                    if (!rejectionReason.contains("Invalid Location")) rejectionReason.concat("Invalid Location + ");
+                    //fix: PREVIOUS VERSION (before the fix):
+                    //    if (!rejectionReason.contains("Invalid Location")) rejectionReason.concat("Invalid Location + ");
+                    rejectionReasons.add(reason);
                     continue;
                 }
 
-                if (!checkPoseAmbiguity(frame.poseAmbiguity(), frame.estimationType())) {
-                    rejectedPoses.add(frame.robotPose());
-                    if (!rejectionReason.contains("High Ambiguity")) rejectionReason.concat("High Ambiguity + ");
-                    continue;
-                }
-
-                if (!checkDistance(frame.averageTargetDistance(), frame.estimationType())) {
-                    rejectedPoses.add(frame.robotPose());
-                    if (!rejectionReason.contains("Distance from Tag")) rejectionReason.concat("Distance from Tag");
-                    continue;
-                }
-                if ( frame.tagCount() > 2 && frame.timeStamp() - lastOdometryResetTime > 2.5 ) {
-                    lastOdometryResetTime = frame.timeStamp();
-                    resetOdometryCallback.accept(frame.robotPose().toPose2d());
-                }
+                //fix: CHANGE: removed the "tagCount > 2 -> resetOdometryCallback" block that used to be here.
+                // REASON: this hard reset overwrote the gyro and caused the "wrong for the whole match" bug.
+                //fix: PREVIOUS VERSION (before the fix):
+                //    if (!checkPoseAmbiguity(frame.poseAmbiguity(), frame.estimationType())) {
+                //        rejectedPoses.add(frame.robotPose());
+                //        if (!rejectionReason.contains("High Ambiguity")) rejectionReason.concat("High Ambiguity + ");
+                //        continue;
+                //    }
+                //
+                //    if (!checkDistance(frame.averageTargetDistance(), frame.estimationType())) {
+                //        rejectedPoses.add(frame.robotPose());
+                //        if (!rejectionReason.contains("Distance from Tag")) rejectionReason.concat("Distance from Tag");
+                //        continue;
+                //    }
+                //    if ( frame.tagCount() > 2 && frame.timeStamp() - lastOdometryResetTime > 2.5 ) {
+                //        lastOdometryResetTime = frame.timeStamp();
+                //        resetOdometryCallback.accept(frame.robotPose().toPose2d());
+                //    }
+                //fix: END PREVIOUS VERSION
 
                 var stdDevs = getStdDevs(frame.averageTargetDistance(), frame.tagCount(), frame.estimationType(), camera);
 
                 poseConsumer.accept(frame.robotPose().toPose2d(), frame.timeStamp(), stdDevs);
 
                 acceptedPoses.add(frame.robotPose());
+                //fix: CHANGE: new logs, so std devs and solve quality can be tuned from match logs.
+                Logger.recordOutput("Vision/" + camera.cameraName + "/Last Std Devs", stdDevs.getData());
+                Logger.recordOutput("Vision/" + camera.cameraName + "/Last Reprojection Error", frame.reprojectionError());
             }
 
             allAcceptedPoses.addAll(acceptedPoses);
@@ -126,10 +200,38 @@ public class Vision extends SubsystemBase {
 
             Logger.recordOutput("Vision/" + camera.cameraName + "/Accepted Poses", acceptedPoses.toArray(new Pose3d[0]));
             Logger.recordOutput("Vision/" + camera.cameraName + "/Rejected Poses", rejectedPoses.toArray(new Pose3d[0]));
-            Logger.recordOutput("Vision/" + camera.cameraName + "/Rejected Reason", rejectionReason);
+            //fix: PREVIOUS VERSION (before the fix):
+            //    Logger.recordOutput("Vision/" + camera.cameraName + "/Rejected Reason", rejectionReason);
+            Logger.recordOutput("Vision/" + camera.cameraName + "/Rejected Reason", rejectionReasons.toArray(new String[0]));
         }
         Logger.recordOutput("Vision/All Accepted", allAcceptedPoses.toArray(new Pose3d[0]));
         Logger.recordOutput("Vision/All Rejected", allRejectedPoses.toArray(new Pose3d[0]));
+    }
+
+    /**
+     * //fix: CHANGE: new. All the rejection checks in one place, in order from cheapest to most expensive.
+     * Note: there is deliberately NO "too far from the current pose" check. That kind of check is what locks
+     * a robot out for good once its pose is wrong. 254 / 6328 scale the std devs instead.
+     *
+     * @return null if the frame is good, otherwise a short reason for the log
+     */
+    private String getRejectionReason(VisionIO.VisionFrame frame, double yawRateDegPerSec, double tiltDeg) {
+        if (frame.estimationType() == null) return "No Estimation Type";
+
+        // REASON: motion blur / timestamp error while spinning fast (Limelight MegaTag2 rule)
+        if (yawRateDegPerSec > VisionConstants.maxYawRateDegPerSec) return "Spinning Too Fast";
+
+        // REASON: robotToCamera assumes the robot is flat. On the bump the camera is tilted and the pose is shifted.
+        if (tiltDeg > VisionConstants.maxTiltDeg) return "Robot Tilted";
+
+        if (!checkPoseLocation(frame.robotPose(), frame.estimationType())) return "Invalid Location";
+
+        if (!checkSolveQuality(frame)) return frame.estimationType() == VisionIO.EstimationType.MULTIPLE_TARGETS
+                ? "High Reprojection Error" : "High Ambiguity";
+
+        if (!checkDistance(frame.averageTargetDistance(), frame.estimationType())) return "Distance from Tag";
+
+        return null;
     }
 
     /**
@@ -138,49 +240,77 @@ public class Vision extends SubsystemBase {
      * and the height of the robot is in tolerance
      *
      * @param pose the calculated pose
+     * @param estimationType the type of estimation used
      * @return whether the pose is in a valid location
      */
-    private boolean checkPoseLocation(Pose3d pose) {
+    //fix: PREVIOUS VERSION (before the fix):
+    //    private boolean checkPoseLocation(Pose3d pose) {
+    private boolean checkPoseLocation(Pose3d pose, VisionIO.EstimationType estimationType) {
         double poseX = pose.getX();
         double poseY = pose.getY();
         double poseZ = pose.getZ();
 
         if (poseX >= VisionConstants.FIELD_LAYOUT.getFieldLength() || poseX < 0) return false;
         if (poseY >= VisionConstants.FIELD_LAYOUT.getFieldWidth() || poseY < 0) return false;
-        return !(Math.abs(poseZ) > VisionConstants.maxHeightDeviation);
+        //fix: PREVIOUS VERSION (before the fix):
+        //    return !(Math.abs(poseZ) > VisionConstants.maxHeightDeviation);
 
+        //fix: CHANGE: the height check only runs for multi-tag.
+        // REASON: the single-tag trig solve always returns z = 0, so checking it means nothing.
+        if (estimationType == VisionIO.EstimationType.MULTIPLE_TARGETS)
+            return !(Math.abs(poseZ) > VisionConstants.maxHeightDeviation);
+        return true;
     }
 
     /**
-     * Checks if the pose ambiguity is good enough for proceeding
+     * //fix: CHANGE: replaces checkPoseAmbiguity().
+     * REASON: for multi-tag, PhotonVision's ambiguity is always 0, so that check never rejected anything.
+     * Multi-tag is now checked by reprojection error (pixels). Single-tag is still checked by ambiguity.
      *
-     * @param poseAmbiguity  the ambiguity of the pose (0 is no ambiguity, 1 is no idea)
-     * @param estimationType the type of estimation used
-     * @return whether the pose ambiguity is within acceptable bounds
+     * @param frame the frame to check
+     * @return whether the solve quality is within acceptable bounds
      */
-    private boolean checkPoseAmbiguity(double poseAmbiguity, VisionIO.EstimationType estimationType) {
+    //fix: PREVIOUS VERSION (before the fix):
+    //    private boolean checkPoseAmbiguity(double poseAmbiguity, VisionIO.EstimationType estimationType) {
+    private boolean checkSolveQuality(VisionIO.VisionFrame frame) {
+        if (frame.estimationType() == VisionIO.EstimationType.MULTIPLE_TARGETS) {
+            return frame.reprojectionError() <= VisionConstants.maxMultiReprojectionError;
+        }
+        return frame.poseAmbiguity() <= VisionConstants.maxSingleAmbiguity;
+    }
+
+    private boolean checkDistance(double distance, VisionIO.EstimationType estimationType){
         if (estimationType == null) {
             return false;
         }
-        return poseAmbiguity <= estimationType.getMaxAmbiguity();
-
+        //fix: PREVIOUS VERSION (before the fix):
+        //    return poseAmbiguity <= estimationType.getMaxAmbiguity();
+        return distance <= estimationType.getMaxDistance();
     }
 
-    private boolean checkDistance(double distanceX, VisionIO.EstimationType estimationType){
-        if (estimationType == null) {
-            return false;
-        }
-        return distanceX <= estimationType.getMaxDistance();
-    }
-
-        /**
+    /**
+    //fix: PREVIOUS VERSION (before the fix):
+    //    private boolean checkDistance(double distanceX, VisionIO.EstimationType estimationType){
+    //        if (estimationType == null) {
+    //            return false;
+    //        }
+    //        return distanceX <= estimationType.getMaxDistance();
+    //    }
+    //
+    //        /**
+    //fix: END PREVIOUS VERSION
      * calculates the standard deviations for the pose based on the average distance to the tags
+     * (same shape as the AdvantageKit / 6328 template: factor * distance^2 / tagCount)
      *
      * @param averageTagDistance the average distance to the tags
+     * @param tagCount           the number of tags used in the solve
      * @param estimationType     the type of estimation used
+     * @param camera             the camera (for its per-camera factors)
      * @return the standard deviations for the pose
      */
-    private Matrix<N3, N1> getStdDevs(double averageTagDistance, double tagCount, VisionIO.EstimationType estimationType, VisionCamera camera) {
+    //fix: PREVIOUS VERSION (before the fix):
+    //    private Matrix<N3, N1> getStdDevs(double averageTagDistance, double tagCount, VisionIO.EstimationType estimationType, VisionCamera camera) {
+    private Matrix<N3, N1> getStdDevs(double averageTagDistance, int tagCount, VisionIO.EstimationType estimationType, VisionCamera camera) {
         // Calculate standard deviations
         double stdDevFactor =
                 Math.pow(averageTagDistance, 2.0) / tagCount;
@@ -188,8 +318,17 @@ public class Vision extends SubsystemBase {
         double linearStdDev = camera.constants.XYstdFactor * stdDevFactor;
         double angularStdDev = camera.constants.thetaStdFactor * stdDevFactor;
         if (estimationType == VisionIO.EstimationType.MULTIPLE_TARGETS) {
-            linearStdDev *= 0.5;
-            angularStdDev *= 0.5;
+            //fix: PREVIOUS VERSION (before the fix):
+            //    linearStdDev *= 0.5;
+            //    angularStdDev *= 0.5;
+            linearStdDev *= VisionConstants.multiTagStdDevFactor;
+            angularStdDev *= VisionConstants.multiTagStdDevFactor;
+        } else {
+            //fix: CHANGE: single-tag frames give NO heading (infinite std dev).
+            // REASON: the single-tag trig solve returns the heading WE gave it, so feeding it back as a
+            // "measurement" would just be the robot agreeing with itself. AdvantageKit (MegaTag2),
+            // Limelight (9999999) and 1678 do the same.
+            angularStdDev = Double.POSITIVE_INFINITY;
         }
 
         return VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev);
@@ -216,21 +355,33 @@ public class Vision extends SubsystemBase {
             this.constants = constants;
         }
 
-        public VisionCamera(CameraConstants constants, AprilTagFieldLayout fieldLayout, Supplier<Pose2d> referencePoseSupplier) {
-            this(new VisionIOPhoton(constants, fieldLayout, referencePoseSupplier), constants.cameraName, constants);
+        //fix: PREVIOUS VERSION (before the fix):
+        //    public VisionCamera(CameraConstants constants, AprilTagFieldLayout fieldLayout, Supplier<Pose2d> referencePoseSupplier) {
+        //        this(new VisionIOPhoton(constants, fieldLayout, referencePoseSupplier), constants.cameraName, constants);
+        public VisionCamera(CameraConstants constants, AprilTagFieldLayout fieldLayout) {
+            this(new VisionIOPhoton(constants, fieldLayout), constants.cameraName, constants);
         }
 
-        public VisionCamera(String cameraName){
-            this.camera = new VisionIO() {
+        /**
+         * replay constructor (the IO does nothing, the inputs come from the log)
+         * //fix: CHANGE: takes the camera's own CameraConstants instead of only a name (it used to hard-code FRONT_CAMERA).
+         */
+        //fix: PREVIOUS VERSION (before the fix):
+        //    public VisionCamera(String cameraName){
+        //        this.camera = new VisionIO() {
+        public VisionCamera(CameraConstants constants){
+            this(new VisionIO() {
                 @Override
                 public void update(VisionInputsAutoLogged inputs) {
                 }
-            };
-
-            this.cameraName = cameraName;
-            this.constants = CameraConstants.FRONT_CAMERA;
-            inputs = new VisionInputsAutoLogged();
-
+            //fix: PREVIOUS VERSION (before the fix):
+            //    };
+            //
+            //    this.cameraName = cameraName;
+            //    this.constants = CameraConstants.FRONT_CAMERA;
+            //    inputs = new VisionInputsAutoLogged();
+            //fix: END PREVIOUS VERSION
+            }, constants.cameraName, constants);
         }
 
         public void update() {

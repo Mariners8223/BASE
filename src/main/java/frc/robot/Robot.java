@@ -38,9 +38,18 @@ public class Robot extends LoggedRobot {
     public Robot() {
         Logger.recordMetadata("ProjectName", "MyProject");
 
+        //fix: CHANGE: three cases instead of two (real / sim / replay).
+        // REASON: before, anything that wasn't the real robot went into log REPLAY and asked for a log file, so a
+        // normal simulation could not run. Now replay only happens when Constants.ROBOT_TYPE == REPLAY.
         if (isReal()) {
-            Logger.addDataReceiver(new WPILOGWriter()); 
-            Logger.addDataReceiver(new NT4Publisher()); 
+            //fix: PREVIOUS VERSION (before the fix):
+            //    Logger.addDataReceiver(new WPILOGWriter()); 
+            //    Logger.addDataReceiver(new NT4Publisher()); 
+            Logger.addDataReceiver(new WPILOGWriter());
+            Logger.addDataReceiver(new NT4Publisher());
+        }
+        else if (frc.robot.Constants.ROBOT_TYPE != frc.robot.Constants.RobotType.REPLAY) {
+            Logger.addDataReceiver(new NT4Publisher()); // plain simulation: publish to NetworkTables for AdvantageScope
         }
         else {
             setUseTiming(false); 

@@ -34,7 +34,12 @@ public class SimGyroIO extends GyroIO{
         prevVelocityX = chassisSpeeds.vxMetersPerSecond;
         prevVelocityY = chassisSpeeds.vyMetersPerSecond;
 
-        inputs.yawRate = twist.dtheta / 0.02;
+        //fix: CHANGE: convert to degrees per second, right positive (it was radians per second, left positive).
+        // REASON: GyroIO.getYawRate() promises deg/s with right positive, and PigeonIO does that. Vision's
+        // "Spinning Too Fast" filter compares against deg/s, so in sim it never triggered.
+        //fix: PREVIOUS VERSION (before the fix):
+        //    inputs.yawRate = twist.dtheta / 0.02;
+        inputs.yawRate = -Math.toDegrees(twist.dtheta / 0.02);
     }
 
     @Override

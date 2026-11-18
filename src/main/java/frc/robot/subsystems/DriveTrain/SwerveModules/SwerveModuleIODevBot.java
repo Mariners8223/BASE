@@ -122,7 +122,10 @@ public class SwerveModuleIODevBot extends SwerveModuleIO {
 
     @Override
     void endDriveCalibration() {
-        driveMotor.startPIDTuning();
+        //fix: CHANGE: startPIDTuning() -> stopPIDTuning(). REASON: "stop calibration" was starting it again, so it never stopped.
+        //fix: PREVIOUS VERSION (before the fix):
+        //    driveMotor.startPIDTuning();
+        driveMotor.stopPIDTuning();
     }
 
     @Override
@@ -132,7 +135,10 @@ public class SwerveModuleIODevBot extends SwerveModuleIO {
 
     @Override
     void endSteerCalibration() {
-        steerMotor.startPIDTuning();
+        //fix: CHANGE: startPIDTuning() -> stopPIDTuning(). REASON: "stop calibration" was starting it again, so it never stopped.
+        //fix: PREVIOUS VERSION (before the fix):
+        //    steerMotor.startPIDTuning();
+        steerMotor.stopPIDTuning();
     }
 
 

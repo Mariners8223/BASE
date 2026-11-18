@@ -35,7 +35,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.PIDSubsystem;
 import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -46,16 +45,12 @@ import frc.robot.commands.Drive.MinorAdjust.AdjustmentDirection;
 import frc.robot.subsystems.DriveTrain.DriveBase;
 import frc.robot.subsystems.Vision.Vision;
 import frc.robot.subsystems.Intake.Rollers.RollerCommands;
-import frc.robot.subsystems.Intake.Rollers.RollerConstants; // FIX: used by the "start rollers" named command
+import frc.robot.subsystems.Intake.Rollers.RollerConstants; 
 import frc.robot.subsystems.Intake.Rollers.Rollers;
 import frc.robot.subsystems.Intake.Rollers.rollersReverse;
 import frc.robot.subsystems.Intake.rackAndPinion.CycleIntake;
 import frc.robot.subsystems.Intake.rackAndPinion.intakeFullExtension;
 import frc.robot.subsystems.Intake.rackAndPinion.intakeFullRetraction;
-import frc.robot.subsystems.Intake.rackAndPinion.rackAndPinionConstants;
-import frc.robot.subsystems.Intake.rackAndPinion.rackAndPinionIO;
-import frc.robot.subsystems.Intake.rackAndPinion.rackAndPinionIOReal;
-import frc.robot.subsystems.Intake.rackAndPinion.rackAndPinionIO.rackAndPinionInputs;
 import frc.robot.subsystems.Intake.rackAndPinion.rackAndPinionSubsystem;
 import frc.robot.subsystems.Intake.transfer.transferOn;
 import frc.robot.subsystems.Intake.transfer.transferReverse;
@@ -140,7 +135,12 @@ public class RobotContainer {
         rackAndPinion = new rackAndPinionSubsystem();
         rollers = new Rollers();
  
-        vision = new Vision(driveBase::addVisionMeasurement, driveBase::getPose, driveBase::reset);
+        //fix: CHANGE: vision no longer gets driveBase::reset. It gets yaw rate + tilt instead, for its rejection filters.
+        // REASON: vision calling reset() (which also reset the gyro) whenever it saw 3+ tags is what made one bad frame
+        // ruin the whole match. Vision now only sends measurements to the pose estimator.
+        //fix: PREVIOUS VERSION (before the fix):
+        //    vision = new Vision(driveBase::addVisionMeasurement, driveBase::getPose, driveBase::reset);
+        vision = new Vision(driveBase::addVisionMeasurement, driveBase::getPose, driveBase::getYawRateDegPerSec, driveBase::getTiltDeg);
  
         configureCommands();
         configureNamedCommands(); 
