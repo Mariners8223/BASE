@@ -64,6 +64,14 @@ public class Vision extends SubsystemBase {
     private final Supplier<Pose2d> robotPoseSupplier;
     private final DoubleSupplier yawRateDegPerSecSupplier;
     private final DoubleSupplier tiltDegSupplier;
+    //fix: CHANGE: new (Orbit 1690 idea). Seconds since DriveBase last detected a collision or a wheel slip.
+    // REASON: right after one, the wheels are wrong, so vision is trusted more for a short time (see getStdDevs).
+    private final DoubleSupplier secondsSinceOdometryUntrustedSupplier;
+
+    //fix: CHANGE: new (Orbit 1690 idea). The capture time of the last ACCEPTED multi-tag frame, and the result of the
+    // "is the pose confident" check (see updatePoseConfidence()).
+    private double lastGoodMultiTagTime = Double.NEGATIVE_INFINITY;
+    private boolean poseConfident = false;
 
     /**
      * Creates a new Vision.
@@ -72,11 +80,13 @@ public class Vision extends SubsystemBase {
      * @param robotPoseSupplier        the fused robot pose (DriveBase::getPose), its heading is used for single-tag solves
      * @param yawRateDegPerSecSupplier the robot yaw rate in deg/s (sign doesn't matter)
      * @param tiltDegSupplier          the robot tilt in degrees, max of |pitch| and |roll|
+     * @param secondsSinceOdometryUntrustedSupplier seconds since the last collision / wheel slip (DriveBase::getSecondsSinceOdometryUntrusted)
      */
     //fix: PREVIOUS VERSION (before the fix):
     //    public Vision(VisionConsumer poseConsumer, Supplier<Pose2d> referencePoseSupplier, Consumer<Pose2d> resetOdometryCallback) {
     public Vision(VisionConsumer poseConsumer, Supplier<Pose2d> robotPoseSupplier,
-                  DoubleSupplier yawRateDegPerSecSupplier, DoubleSupplier tiltDegSupplier) {
+                  DoubleSupplier yawRateDegPerSecSupplier, DoubleSupplier tiltDegSupplier,
+                  DoubleSupplier secondsSinceOdometryUntrustedSupplier) {
 
         int numOfCameras = CameraConstants.values().length;
 
@@ -103,6 +113,7 @@ public class Vision extends SubsystemBase {
         this.robotPoseSupplier = robotPoseSupplier;
         this.yawRateDegPerSecSupplier = yawRateDegPerSecSupplier;
         this.tiltDegSupplier = tiltDegSupplier;
+        this.secondsSinceOdometryUntrustedSupplier = secondsSinceOdometryUntrustedSupplier; //fix: CHANGE: new
     }
 
     @Override
@@ -120,6 +131,11 @@ public class Vision extends SubsystemBase {
         double tilt = Math.abs(tiltDegSupplier.getAsDouble());
         Logger.recordOutput("Vision/Yaw Rate deg per sec", yawRate);
         Logger.recordOutput("Vision/Tilt deg", tilt);
+
+        //fix: CHANGE: new. True for a short time after a collision / wheel slip -> vision is trusted more (see getStdDevs).
+        boolean odometryUntrusted =
+                secondsSinceOdometryUntrustedSupplier.getAsDouble() < VisionConstants.odometryUntrustedTimeSec;
+        Logger.recordOutput("Vision/Odometry Untrusted", odometryUntrusted);
 
         for (VisionCamera camera : cameras) {
             camera.camera.addHeadingData(now, heading);
@@ -185,11 +201,17 @@ public class Vision extends SubsystemBase {
                 //    }
                 //fix: END PREVIOUS VERSION
 
-                var stdDevs = getStdDevs(frame.averageTargetDistance(), frame.tagCount(), frame.estimationType(), camera);
+                //fix: PREVIOUS VERSION (before the fix):
+                //    var stdDevs = getStdDevs(frame.averageTargetDistance(), frame.tagCount(), frame.estimationType(), camera);
+                var stdDevs = getStdDevs(frame.averageTargetDistance(), frame.tagCount(), frame.estimationType(), camera,
+                        odometryUntrusted);
 
                 poseConsumer.accept(frame.robotPose().toPose2d(), frame.timeStamp(), stdDevs);
 
                 acceptedPoses.add(frame.robotPose());
+                //fix: CHANGE: new. Remember when the last good multi-tag frame was taken (used by updatePoseConfidence()).
+                if (frame.estimationType() == VisionIO.EstimationType.MULTIPLE_TARGETS && frame.tagCount() >= 2)
+                    lastGoodMultiTagTime = Math.max(lastGoodMultiTagTime, frame.timeStamp());
                 //fix: CHANGE: new logs, so std devs and solve quality can be tuned from match logs.
                 Logger.recordOutput("Vision/" + camera.cameraName + "/Last Std Devs", stdDevs.getData());
                 Logger.recordOutput("Vision/" + camera.cameraName + "/Last Reprojection Error", frame.reprojectionError());
@@ -206,6 +228,35 @@ public class Vision extends SubsystemBase {
         }
         Logger.recordOutput("Vision/All Accepted", allAcceptedPoses.toArray(new Pose3d[0]));
         Logger.recordOutput("Vision/All Rejected", allRejectedPoses.toArray(new Pose3d[0]));
+
+        updatePoseConfidence(now); //fix: CHANGE: new
+    }
+
+    /**
+     * //fix: CHANGE: new (Orbit 1690 idea). Decides if we can trust the pose enough to shoot by it.
+     * Confident = a good multi-tag frame was accepted in the last poseConfidentTimeSec seconds,
+     * AND no collision / wheel slip happened after that frame (a hit after the frame makes the pose wrong again).
+     * REASON: needs memory over time (when was the last good frame, was there a hit since), so it lives here
+     * and not as a plain condition in RobotContainer.
+     */
+    private void updatePoseConfidence(double now) {
+        double lastOdometryUntrustedTime = now - secondsSinceOdometryUntrustedSupplier.getAsDouble();
+        double secondsSinceGoodMultiTag = now - lastGoodMultiTagTime;
+
+        poseConfident = secondsSinceGoodMultiTag < VisionConstants.poseConfidentTimeSec
+                && lastGoodMultiTagTime > lastOdometryUntrustedTime;
+
+        Logger.recordOutput("Vision/Pose Confident", poseConfident);
+        Logger.recordOutput("Vision/Seconds Since Good Multi-Tag", Math.min(secondsSinceGoodMultiTag, 999));
+    }
+
+    /**
+     * //fix: CHANGE: new. Used by RobotContainer.readyToShoot() (teleop only) and shown on Elastic.
+     *
+     * @return true if the pose is good enough to aim and shoot by it
+     */
+    public boolean isPoseConfident() {
+        return poseConfident;
     }
 
     /**
@@ -306,11 +357,15 @@ public class Vision extends SubsystemBase {
      * @param tagCount           the number of tags used in the solve
      * @param estimationType     the type of estimation used
      * @param camera             the camera (for its per-camera factors)
+     * @param odometryUntrusted  true right after a collision / wheel slip (x/y is then trusted more)
      * @return the standard deviations for the pose
      */
     //fix: PREVIOUS VERSION (before the fix):
     //    private Matrix<N3, N1> getStdDevs(double averageTagDistance, double tagCount, VisionIO.EstimationType estimationType, VisionCamera camera) {
-    private Matrix<N3, N1> getStdDevs(double averageTagDistance, int tagCount, VisionIO.EstimationType estimationType, VisionCamera camera) {
+    //fix: PREVIOUS VERSION (after the first vision fix, before the collision/slip change):
+    //    private Matrix<N3, N1> getStdDevs(double averageTagDistance, int tagCount, VisionIO.EstimationType estimationType, VisionCamera camera) {
+    private Matrix<N3, N1> getStdDevs(double averageTagDistance, int tagCount, VisionIO.EstimationType estimationType,
+                                      VisionCamera camera, boolean odometryUntrusted) {
         // Calculate standard deviations
         double stdDevFactor =
                 Math.pow(averageTagDistance, 2.0) / tagCount;
@@ -330,6 +385,11 @@ public class Vision extends SubsystemBase {
             // Limelight (9999999) and 1678 do the same.
             angularStdDev = Double.POSITIVE_INFINITY;
         }
+
+        //fix: CHANGE: new (Orbit 1690 idea). Right after a collision / wheel slip, trust vision's x/y more.
+        // REASON: the wheels just "lied", so vision should fix the position fast instead of over a few seconds.
+        // The heading is not changed (the gyro still measures turning correctly during a hit).
+        if (odometryUntrusted) linearStdDev *= VisionConstants.odometryUntrustedStdDevFactor;
 
         return VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev);
     }

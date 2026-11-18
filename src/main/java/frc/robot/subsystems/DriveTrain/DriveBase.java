@@ -30,6 +30,7 @@ import com.pathplanner.lib.path.PathPlannerPath;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d; //fix: CHANGE: new import, used by updateOdometryTrust()
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -94,6 +95,12 @@ public class DriveBase extends SubsystemBase {
      * the current pose of the robot (the position and rotation of the robot)
      */
     private Pose2d currentPose = new Pose2d();
+
+    /**
+     * //fix: CHANGE: new (Orbit 1690 idea). The last time (FPGA seconds) a collision or a wheel slip was detected.
+     * REASON: Vision uses this to trust the camera more for a short time after the wheels "lied" (see updateOdometryTrust()).
+     */
+    private double lastOdometryUntrustedTime = Double.NEGATIVE_INFINITY;
 
     @AutoLog
     public static class DriveBaseInputs {
@@ -294,6 +301,65 @@ public class DriveBase extends SubsystemBase {
      */
     public double getTiltDeg() {
         return Math.max(Math.abs(gyro.getPitch()), Math.abs(gyro.getRoll()));
+    }
+
+    /**
+     * //fix: CHANGE: new, used by Vision. Seconds since the last detected collision or wheel slip
+     * (a very big number if there was none yet).
+     *
+     * @return seconds since the odometry was last known to be unreliable
+     */
+    public double getSecondsSinceOdometryUntrusted() {
+        return Timer.getFPGATimestamp() - lastOdometryUntrustedTime;
+    }
+
+    /**
+     * //fix: CHANGE: new (Orbit 1690 idea). Detects moments when the wheel odometry is probably wrong.
+     * REASON: a hit from another robot moves us without the wheels turning, and a slipping wheel counts distance that
+     * was never driven. Both make the pose wrong, and with normal std devs vision fixes it slowly. Nothing is reset
+     * here, it only records the time, and Vision then trusts the camera more for a short time.
+     * <p>
+     * 1. Collision: the Pigeon's horizontal acceleration goes above COLLISION_THRESHOLD_G (normal driving stays well below).
+     *    Note: the Pigeon's acceleration includes gravity, so tilting on the bump adds a little (about 0.26 g at 15 deg).
+     * <p>
+     * 2. Slip (simple version): every wheel's velocity = robot driving velocity + a part that comes from the robot
+     *    turning. We remove the turning part (using the GYRO's turn rate, which doesn't slip). What's left must be the
+     *    same for all 4 wheels. A wheel that is far from the average is slipping.
+     *    Limitation: if all 4 wheels slip by the same amount (hard acceleration on all wheels) this can't see it.
+     * <p>
+     * In simulation the acceleration is calculated from the wheel speeds, so it may sometimes "detect" collisions.
+     * That is harmless (it only makes vision trusted more for 1 second).
+     */
+    private void updateOdometryTrust() {
+        // 1. collision
+        double accelerationG = Math.hypot(gyro.getAccelerationX(), gyro.getAccelerationY()) / 9.80665;
+        boolean collision = accelerationG > DriveBaseConstants.OdometryTrust.COLLISION_THRESHOLD_G;
+
+        // 2. slip
+        double omegaRadPerSec = -Math.toRadians(gyro.getYawRate()); // getYawRate() is right positive, kinematics needs left positive
+        Translation2d[] drivingVelocities = new Translation2d[4];
+        Translation2d average = new Translation2d();
+        for (int i = 0; i < 4; i++) {
+            SwerveModuleState state = inputs.currentStates[i];
+            Translation2d wheelVelocity = new Translation2d(state.speedMetersPerSecond, state.angle);
+
+            // the velocity this wheel gets only from the robot turning (omega x r)
+            Translation2d r = DriveBaseConstants.MODULE_TRANSLATIONS[i];
+            Translation2d fromTurning = new Translation2d(-omegaRadPerSec * r.getY(), omegaRadPerSec * r.getX());
+
+            drivingVelocities[i] = wheelVelocity.minus(fromTurning);
+            average = average.plus(drivingVelocities[i].div(4));
+        }
+        double maxDeviation = 0;
+        for (Translation2d v : drivingVelocities) maxDeviation = Math.max(maxDeviation, v.getDistance(average));
+        boolean skid = maxDeviation > DriveBaseConstants.OdometryTrust.SKID_THRESHOLD_MPS;
+
+        if (collision || skid) lastOdometryUntrustedTime = Timer.getFPGATimestamp();
+
+        Logger.recordOutput("DriveBase/Odometry Trust/Acceleration G", accelerationG);
+        Logger.recordOutput("DriveBase/Odometry Trust/Skid Deviation mps", maxDeviation);
+        Logger.recordOutput("DriveBase/Odometry Trust/Collision Detected", collision);
+        Logger.recordOutput("DriveBase/Odometry Trust/Skid Detected", skid);
     }
 
     public double getVelocity(){
@@ -611,6 +677,9 @@ public class DriveBase extends SubsystemBase {
         poseEstimator.update(gyro.getRotation2d(), positions);
         currentPose = poseEstimator.getEstimatedPosition();
         Robot.setRobotPoseOnField(currentPose);
+
+        //fix: CHANGE: new. Check for a collision / wheel slip every loop (after the gyro and the wheels were read).
+        updateOdometryTrust();
 
         Logger.recordOutput("DriveBase/estimatedPose", currentPose);
         Logger.recordOutput("DriveBase/ChassisSpeeds", getChassisSpeeds());

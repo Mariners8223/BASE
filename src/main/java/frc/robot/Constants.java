@@ -28,11 +28,20 @@ public final class Constants {
     public static <U extends Unit> boolean epsilonEquals(Measure<U> unit1, Measure<U> unit2, Measure<U> tolerance){
         return Math.abs(unit1.baseUnitMagnitude() - unit2.baseUnitMagnitude()) <= tolerance.baseUnitMagnitude();
     }
+    //fix: CHANGE: comment only (the value is the same). This value is in DEGREES.
+    // REASON: readyToShoot() used to compare it directly to an angle in RADIANS (see readyToShoot()). If feeding
+    // starts too late because the robot can't settle within 2 deg, look at "Shooter/Aim Error deg" and raise it.
     public static final double SHOOTING_ANGLE_TOLERANCE = 2;
     public static class ConstantShootingRanges {
             public static final double MIN_SHOOTING_DISTANCE = 1.8;
             public static final double AUTO_BUMP_SHOOTING_DISTANCE = 3;
             public static final double AUTO_TRENCH_SHOOTING_DISTANCE = 7;
+            //fix: CHANGE: new. The distance (meters, hub center to robot center) the MANUAL shot (cross button) is set
+            // for. The driver drives to this spot (e.g. bumper against the hub) and aims by hand, so it works even if
+            // the pose is wrong.
+            // TODO: measure on the real robot: put the bumper against the hub and check "Distance to Hub" on Elastic
+            // (when the pose is good). 1.8 = MIN_SHOOTING_DISTANCE, a starting guess.
+            public static final double MANUAL_SHOOTING_DISTANCE = 1.8;
     }
     public static class FieldConstants{
         public static final Pose2d HUB_POSITION = new Pose2d(4.611,4.046,new Rotation2d());

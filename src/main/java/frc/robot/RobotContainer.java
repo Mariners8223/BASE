@@ -18,6 +18,7 @@ import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.util.FileVersionException;
 import com.pathplanner.lib.util.FlippingUtil;
 import java.io.IOException;
+import edu.wpi.first.math.MathUtil; //fix: CHANGE: new import, used by readyToShoot()
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -120,6 +121,7 @@ public class RobotContainer {
     public static Supplier<Command> warmpupshooterAutoTrench;
     public static Supplier<Command> aimAtHub;
     public static Supplier<Command> shootWhenReady;
+    public static Supplier<Command> manualShoot; //fix: CHANGE: new, the manual shot (cross button)
     public static Supplier<Command> startRollers;
     public static Supplier<Command> stopRollers;
 
@@ -140,7 +142,11 @@ public class RobotContainer {
         // ruin the whole match. Vision now only sends measurements to the pose estimator.
         //fix: PREVIOUS VERSION (before the fix):
         //    vision = new Vision(driveBase::addVisionMeasurement, driveBase::getPose, driveBase::reset);
-        vision = new Vision(driveBase::addVisionMeasurement, driveBase::getPose, driveBase::getYawRateDegPerSec, driveBase::getTiltDeg);
+        //fix: CHANGE: also passes getSecondsSinceOdometryUntrusted (collision / wheel slip detection, Orbit 1690 idea).
+        //fix: PREVIOUS VERSION (before the fix):
+        //    vision = new Vision(driveBase::addVisionMeasurement, driveBase::getPose, driveBase::getYawRateDegPerSec, driveBase::getTiltDeg);
+        vision = new Vision(driveBase::addVisionMeasurement, driveBase::getPose, driveBase::getYawRateDegPerSec, driveBase::getTiltDeg,
+                driveBase::getSecondsSinceOdometryUntrusted);
  
         configureCommands();
         configureNamedCommands(); 
@@ -197,6 +203,17 @@ public class RobotContainer {
                 new openHood(hood, () -> distanceFromHub()),
                 new AimDriving(driveBase, driveController, RobotContainer::getShootingAngle)
             ).withName("Shoot");
+        //fix: CHANGE: new. Manual shot that does NOT use the pose at all.
+        // REASON: the normal shot takes the hood angle, the flywheel RPM and the robot angle from the pose. If the pose
+        // is wrong, all three are wrong, and readyToShoot() now also refuses to feed when the pose is not confident.
+        // This shot uses a fixed distance (MANUAL_SHOOTING_DISTANCE) and does NOT take the drivetrain, so the driver
+        // keeps normal driving and aims by hand. It always works, even if vision is completely wrong.
+        manualShoot = () ->
+            Commands.parallel(
+                new StartEndCommand(() -> isShooting = true, () -> isShooting = false),
+                new flyWheelCommand(flywheel, () -> Constants.ConstantShootingRanges.MANUAL_SHOOTING_DISTANCE),
+                new openHood(hood, () -> Constants.ConstantShootingRanges.MANUAL_SHOOTING_DISTANCE)
+            ).withName("Manual Shoot");
         shootWhileAuto = () -> Commands.runOnce(() -> {
             if (areBallsGoingIntoShooter()) {
                 CommandScheduler.getInstance().schedule(shoot.get());
@@ -264,6 +281,11 @@ public class RobotContainer {
         driveController.R1().whileTrue(shoot.get());
 
         driveController.R1().and(RobotContainer::readyToShoot).whileTrue(feed.get()).whileTrue(cycleIntakeWhileShooting.get());
+
+        //fix: CHANGE: new. Hold cross = manual shot (fixed distance, the driver aims). Feeds when the hood and flywheel
+        // are ready. It does not check the pose or the robot angle at all, so it still works when the pose is wrong.
+        driveController.cross().whileTrue(manualShoot.get());
+        driveController.cross().and(RobotContainer::manualReadyToShoot).whileTrue(feed.get()).whileTrue(cycleIntakeWhileShooting.get());
  
         driveController.triangle().whileTrue(outtake.get());
  
@@ -415,8 +437,42 @@ public class RobotContainer {
  
     //#region Shooting Helpers
     private static final Debouncer readyToShootDebouncer = new Debouncer(0.1, DebounceType.kRising);
+    /**
+     * //fix: CHANGE: two changes.
+     * 1. The angle check now checks if the ROBOT is aimed (the difference between where it should face and where it faces).
+     *    REASON: it used to check |angleToHub()| < 2. angleToHub() is the direction from the robot to the hub ON THE
+     *    FIELD, in radians, not how far the robot is from being aimed, and 2 was meant as degrees. So on blue it was
+     *    almost always true (even when not aimed), and on red from the alliance zone (direction ~180 deg = 3.14 rad)
+     *    it was almost never true.
+     *    It now compares against getShootingAngle(), the same angle AimDriving turns the robot to.
+     * 2. In teleop it also needs vision.isPoseConfident() (Orbit 1690 idea).
+     *    REASON: the hood, RPM and aim all come from the pose. If the pose is not confident we would shoot blind.
+     *    In auto this check is skipped: the pose starts from the known auto start pose, and shootWhenReady
+     *    feeds after 1.5 s anyway. If the pose is not confident in teleop, use the manual shot (cross).
+     * Every part is logged under "Shooter/" so you can see which one is blocking.
+     */
     public static boolean readyToShoot() {
-        return readyToShootDebouncer.calculate(Math.abs(angleToHub()) < Constants.SHOOTING_ANGLE_TOLERANCE && hood.atAngle()  && flywheel.atSpeed());
+        //fix: PREVIOUS VERSION (before the fix):
+        //    return readyToShootDebouncer.calculate(Math.abs(angleToHub()) < Constants.SHOOTING_ANGLE_TOLERANCE && hood.atAngle()  && flywheel.atSpeed());
+        double aimErrorDeg = Math.toDegrees(MathUtil.angleModulus(getShootingAngle() - driveBase.getHeading().getRadians()));
+        boolean aimed = Math.abs(aimErrorDeg) < Constants.SHOOTING_ANGLE_TOLERANCE;
+        boolean poseOk = DriverStation.isAutonomous() || vision.isPoseConfident();
+        boolean hoodReady = hood.atAngle();
+        boolean flywheelReady = flywheel.atSpeed();
+
+        Logger.recordOutput("Shooter/Aim Error deg", aimErrorDeg);
+        Logger.recordOutput("Shooter/Ready/Aimed", aimed);
+        Logger.recordOutput("Shooter/Ready/Pose OK", poseOk);
+        Logger.recordOutput("Shooter/Ready/Hood", hoodReady);
+        Logger.recordOutput("Shooter/Ready/Flywheel", flywheelReady);
+
+        return readyToShootDebouncer.calculate(aimed && poseOk && hoodReady && flywheelReady);
+    }
+
+    //fix: CHANGE: new. Ready check for the manual shot: only the hood and flywheel (no pose, no angle).
+    private static final Debouncer manualReadyToShootDebouncer = new Debouncer(0.1, DebounceType.kRising);
+    public static boolean manualReadyToShoot() {
+        return manualReadyToShootDebouncer.calculate(hood.atAngle() && flywheel.atSpeed());
     }
     private static Pose2d hubPose() {
         Pose2d hub = Constants.FieldConstants.HUB_POSITION;
@@ -517,6 +573,8 @@ public class RobotContainer {
         SmartDashboard.putNumber("Distance to Hub", distanceFromHub());
         SmartDashboard.putBoolean("In Alliance Zone", inAllianceZone());
         SmartDashboard.putBoolean("Ready To Shoot", readyToShoot());
+        //fix: CHANGE: new. Green = the normal shot (R1) can be used. Red = use the manual shot (cross).
+        SmartDashboard.putBoolean("Pose Confident", vision.isPoseConfident());
         SmartDashboard.putString("intakeState", rackAndPinion.rackAndPinionState().name());
     }
     //#endregion

@@ -49,8 +49,14 @@ public class PigeonIO extends GyroIO{
         yaw.setUpdateFrequency(100);
         pitch.setUpdateFrequency(50);
         roll.setUpdateFrequency(50);
-        accelerationX.setUpdateFrequency(50);
-        accelerationY.setUpdateFrequency(50);
+        //fix: CHANGE: accelerationX/Y 50 Hz -> 100 Hz.
+        // REASON: DriveBase now uses the acceleration to detect collisions. A hit is a short spike, and a newer
+        // sample makes it more likely that the loop sees the spike.
+        //fix: PREVIOUS VERSION (before the fix):
+        //    accelerationX.setUpdateFrequency(50);
+        //    accelerationY.setUpdateFrequency(50);
+        accelerationX.setUpdateFrequency(100);
+        accelerationY.setUpdateFrequency(100);
         //fix: PREVIOUS VERSION (before the fix):
         //    yawRate.setUpdateFrequency(50);
         yawRate.setUpdateFrequency(100);

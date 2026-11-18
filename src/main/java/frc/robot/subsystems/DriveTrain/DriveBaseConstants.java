@@ -81,4 +81,24 @@ public class DriveBaseConstants {
     }
 
     public static final int PIGEON_ID = 2;
+
+    //fix: CHANGE: new (Orbit 1690 idea). Detecting moments when the wheels (odometry) can't be trusted.
+    // REASON: after a hit or a wheel slip the odometry is wrong, and with normal std devs vision fixes it only slowly
+    // (seconds). When one of these is detected, Vision trusts the camera more for a short time (see VisionConstants).
+    public static final class OdometryTrust {
+        /**
+         * a horizontal acceleration above this (in g) counts as a collision. Orbit uses 2 g.
+         * TUNE: look at "DriveBase/Odometry Trust/Acceleration G" while driving hard WITHOUT hitting anything.
+         * This must be above the highest value you see there, otherwise normal driving counts as a collision.
+         */
+        public static final double COLLISION_THRESHOLD_G = 2.0;
+
+        /**
+         * a wheel whose speed (after removing the part that comes from the robot turning) is further than this (m/s)
+         * from the average of all 4 wheels counts as slipping.
+         * TUNE: look at "DriveBase/Odometry Trust/Skid Deviation mps" while driving and turning normally.
+         * This must be above what you see there.
+         */
+        public static final double SKID_THRESHOLD_MPS = 0.5;
+    }
 }

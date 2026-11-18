@@ -73,6 +73,22 @@ public class VisionConstants {
     // REASON: the old code had the same 0.5 factor hard-coded inside getStdDevs(). It is now a named constant.
     public static final double multiTagStdDevFactor = 0.5;
 
+    //fix: CHANGE: new (Orbit 1690 idea). How much MORE to trust vision right after a collision or a wheel slip.
+    // REASON: the wheels "lie" after a hit/slip, and with the normal std devs the camera fixes the pose only slowly.
+    // The x/y std dev is multiplied by this (0.3 = trust vision about 3x more). Heading is NOT changed, because the
+    // gyro still measures turning correctly during a hit. Nothing is reset, it only changes how fast vision corrects.
+    public static final double odometryUntrustedStdDevFactor = 0.3;
+
+    //fix: CHANGE: new. How long (seconds) vision is trusted more after the last collision / slip.
+    public static final double odometryUntrustedTimeSec = 1.0;
+
+    //fix: CHANGE: new (Orbit 1690 idea). The pose counts as "confident" only if a good multi-tag frame (2+ tags) was
+    // accepted in the last this-many seconds, AND there was no collision / wheel slip after that frame.
+    // REASON: shooting aims by the pose (hood, flywheel RPM and robot angle all come from it). If the pose is not
+    // confident, the robot should not feed automatically (the driver can still use the manual shot).
+    // TUNE: if "Vision/Pose Confident" goes false too often while the robot is shooting from normal spots, raise it.
+    public static final double poseConfidentTimeSec = 5.0;
+
     public enum CameraConstants{
         FRONT_CAMERA("Front Camera",
             new Transform3d(
