@@ -29,7 +29,6 @@ import frc.util.Elastic;
 
 
 public class Robot extends LoggedRobot {
-    private Command autonomousCommand;
     public static boolean isRedAlliance = false;
 
     private static final Field2d field = new Field2d();
@@ -111,29 +110,5 @@ public class Robot extends LoggedRobot {
         updateAlliance();
     }
 
-    @Override
-    public void autonomousInit() {
-        Elastic.selectTab(1);
-        updateAlliance();
-
-        autonomousCommand = RobotContainer.getAuto();
-        if (autonomousCommand != null) {
-            CommandScheduler.getInstance().schedule(autonomousCommand);
-        }
-    }
-
-    @Override
-    public void autonomousExit(){
-        Elastic.selectTab(0);
-    }
-
-    @Override
-    public void teleopInit() {
-        updateAlliance(); 
-        Robot.clearObjectPoseField("AutoPath");
-        if (autonomousCommand != null) {
-            autonomousCommand.cancel();
-        }
-    }
 
 }
