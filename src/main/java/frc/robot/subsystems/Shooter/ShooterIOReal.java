@@ -11,7 +11,7 @@ public class ShooterIOReal implements ShooterIO {
   MarinersTalonFX followMotor;
   MarinersTalonFX hoodMotor;
   public ShooterIOReal(){
-    leadMotor = new MarinersTalonFX("shooter_Motor", ShooterConstants.CONTROLLER_LOCATION, ShooterConstants.LEAD_MOTOR_ID);
+    leadMotor = new MarinersTalonFX("shooter_Lead_Motor", ShooterConstants.CONTROLLER_LOCATION, ShooterConstants.LEAD_MOTOR_ID);
     leadMotor.setMotorInverted(ShooterConstants.IS_LEAD_INVERT);
     followMotor = new MarinersTalonFX("shooter_Follow_Motor",    ShooterConstants.CONTROLLER_LOCATION, ShooterConstants.FOLLOW_MOTOR_ID);
     followMotor.setMotorAsFollower(leadMotor,ShooterConstants.IS_FOLLOW_INVERT);
@@ -40,6 +40,11 @@ public class ShooterIOReal implements ShooterIO {
 
   }
 
+  @Override
+  public void setVoltage(double desired_Voltage){
+    leadMotor.setVoltage(desired_Voltage);
+  }
+
   // @Override
   // public void setAngle(double desired_Angle){
   //   hoodMotor.setReference(desired_Angle / 360 , ControlMode.Position);
@@ -48,7 +53,8 @@ public class ShooterIOReal implements ShooterIO {
   // }
   // @Override 
   // public double getAngle(){
-    
+
+  
 
   // }
   @Override

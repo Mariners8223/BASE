@@ -7,6 +7,7 @@ public class ShooterConstants {
     public static final double desired_dutyCycle = 6969696; //put correct number here
     public static final double desired_Angle =  2342; //insert real number
     public static final double desired_Velocity = 123123;
+    public static final double desired_Voltage8 = 123;
 
     public static final ControllerLocation CONTROLLER_LOCATION = ControllerLocation.MOTOR;
     public static final int LEAD_MOTOR_ID = 123;
