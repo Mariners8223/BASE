@@ -36,6 +36,7 @@ public class SwerveModuleIODevBot extends SwerveModuleIO {
         driveMotor.setMotorDeadBandVoltage(constants.DRIVE_KS);
 
         driveMotor.setProfile(DevBotConstants.DRIVE_CONSTRAINTS);
+        //driveMotor.setMotorDeadBandVoltage(1);
 
         steerMotor = new MarinersTalonFX(
                 "Drivebase/" + name.name() + " Steer Motor",
@@ -53,6 +54,7 @@ public class SwerveModuleIODevBot extends SwerveModuleIO {
         steerMotor.setProfile(DevBotConstants.STEER_CONSTRAINTS);
 
         steerMotor.setCurrentLimits(30, 40);
+        //steerMotor.setMotorDeadBandVoltage(1);
 
         absEncoder = configCANCoder(constants.ABSOLUTE_ENCODER_ID, constants.ABSOLUTE_ZERO_OFFSET, (int) steerMotor.RUN_HZ);
 
