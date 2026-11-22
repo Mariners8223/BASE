@@ -330,45 +330,38 @@ public class RobotContainer {
     //#endregion
     ////#region Choosers
     public static void configureChoosers(){
-        List<String> namesOfAutos = AutoBuilder.getAllAutoNames();
-        List<PathPlannerAuto> listOfAutos = new ArrayList<>();
+    List<String> namesOfAutos = AutoBuilder.getAllAutoNames();
 
-        autoChooser = new LoggedDashboardChooser<>("chooser");
-        for (String autoName : namesOfAutos) {
+    autoChooser = new LoggedDashboardChooser<>("chooser");
+
+    for (String autoName : namesOfAutos) {
+        System.out.println("Loading auto: " + autoName);
+        try {
             PathPlannerAuto auto = new PathPlannerAuto(autoName);
-           listOfAutos.add(auto);
+            PathPlannerAuto mirrored = new PathPlannerAuto(autoName, true);
+            autoChooser.addOption(auto.getName(), auto);
+            mirroredAutoMap.put(autoName, mirrored);
+        } catch (Exception e) {
+            DriverStation.reportError("Skipping broken auto '" + autoName + "': " + e.getMessage(), e.getStackTrace());
         }
-
-        listOfAutos.forEach(auto -> autoChooser.addOption(auto.getName(), auto));
-
-        autoChooser.addDefaultOption("Do Nothing", new InstantCommand());
-        SmartDashboard.putData("chooser", autoChooser.getSendableChooser());
-
-        new Trigger(RobotState::isEnabled).and(RobotState::isTeleop).onTrue(new InstantCommand(() -> Robot.clearObjectPoseField("AutoPath")).ignoringDisable(true));
-        new Trigger(RobotState::isDisabled).and(checkForPathChoiceUpdate).onTrue(new InstantCommand(() -> updateFieldFromAuto(autoChooser.get().getName())).ignoringDisable(true));
-
-        List<PathPlannerAuto> mirroredListOfAutos = new ArrayList<>();
-        for (String autoName : namesOfAutos) {
-            PathPlannerAuto auto = new PathPlannerAuto(autoName, true);
-            mirroredListOfAutos.add(auto);
-        }
-        for (int i = 0; i < namesOfAutos.size(); i++){
-            mirroredAutoMap.put(namesOfAutos.get(i), mirroredListOfAutos.get(i));
-        }
-        sideChooser = new LoggedDashboardChooser<>("sideChooser");
-
-        sideChooser.addDefaultOption("right", "right");
-        sideChooser.addOption("left", "left");
-
-        SmartDashboard.putData("sideChooser",sideChooser.getSendableChooser());
-
-     
-        preWarm = new LoggedDashboardChooser<>("preWarm?");
-        preWarm.addDefaultOption("OFF", "OFF");
-        preWarm.addOption("ON", "ON");
-        SmartDashboard.putData("preWarm?", preWarm.getSendableChooser());
     }
 
+    autoChooser.addDefaultOption("Do Nothing", new InstantCommand());
+    SmartDashboard.putData("chooser", autoChooser.getSendableChooser());
+
+    new Trigger(RobotState::isEnabled).and(RobotState::isTeleop).onTrue(new InstantCommand(() -> Robot.clearObjectPoseField("AutoPath")).ignoringDisable(true));
+    new Trigger(RobotState::isDisabled).and(checkForPathChoiceUpdate).onTrue(new InstantCommand(() -> updateFieldFromAuto(autoChooser.get().getName())).ignoringDisable(true));
+
+    sideChooser = new LoggedDashboardChooser<>("sideChooser");
+    sideChooser.addDefaultOption("right", "right");
+    sideChooser.addOption("left", "left");
+    SmartDashboard.putData("sideChooser", sideChooser.getSendableChooser());
+
+    preWarm = new LoggedDashboardChooser<>("preWarm?");
+    preWarm.addDefaultOption("OFF", "OFF");
+    preWarm.addOption("ON", "ON");
+    SmartDashboard.putData("preWarm?", preWarm.getSendableChooser());
+}
     private static void updateFieldFromAuto(String autoName) {
         List<Pose2d> poses = new ArrayList<>();
 
@@ -402,9 +395,10 @@ public class RobotContainer {
     };
 
     public static Command getAuto(){
-        return sideChooser.get().equals("right") ?
-            autoChooser.get() : mirroredAutoMap.get(autoChooser.get().getName());
-    }
+    Command selected = autoChooser.get();
+    if (sideChooser.get().equals("right")) return selected;
+    return mirroredAutoMap.getOrDefault(selected.getName(), selected);
+}
     //#endregion
         public static void configureTrenchPaths(){
         try{
