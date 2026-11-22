@@ -96,6 +96,43 @@
                     }
                   ]
                 }
+              },
+              {
+                "type": "parallel",
+                "data": {
+                  "commands": [
+                    {
+                      "type": "path",
+                      "data": {
+                        "pathName": "Rush NZ Return Bump"
+                      }
+                    },
+                    {
+                      "type": "named",
+                      "data": {
+                        "name": "warm up shooter"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "shoot to hub"
+                }
+              },
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "return trench Rush NZ part 2 with return in trench"
+                }
+              },
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Rush NZ Collect"
+                }
               }
             ]
           }
