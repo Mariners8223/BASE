@@ -1,4 +1,4 @@
-package frc.robot.subsystems.shooter.hood;
+package frc.robot.subsystems.Shooter.hood;
 
 import java.util.function.DoubleSupplier;
 
@@ -8,7 +8,7 @@ import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.subsystems.shooter.flywheel.flyWheelConstants;
+import frc.robot.subsystems.Shooter.flywheel.flyWheelConstants;
 
 public class hoodSubsystem extends SubsystemBase {
     private final hoodIO io;
