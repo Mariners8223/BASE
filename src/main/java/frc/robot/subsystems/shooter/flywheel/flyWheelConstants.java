@@ -11,8 +11,8 @@ import frc.util.MarinersController.MarinersTalonFX;
 public class flyWheelConstants {
     public static final ControllerLocation CONTROLLER_LOCATION = ControllerLocation.RIO;
     public static final Translation2d ROBOT_TO_SHOOTER = new Translation2d(0.0, 0.0);
-    public static final int MOTOR_ID = 8; // TODO: real CAN ID 
-    public static final int SEC_MOTOR_ID = 24; // TODO: real CAN ID 
+    public static final int MOTOR_ID = 19;  
+    public static final int SEC_MOTOR_ID = 20;  
     public static final boolean IS_INVERTED = false;
     public static final boolean IS_FOLLOWER_INVERTED_FROM_LEAD = true; 
 

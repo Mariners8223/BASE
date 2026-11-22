@@ -80,7 +80,7 @@ public class DriveBaseConstants {
         }
     }
 
-    public static final int PIGEON_ID = 2;
+    public static final int PIGEON_ID = 13;
 
     //fix: CHANGE: new (Orbit 1690 idea). Detecting moments when the wheels (odometry) can't be trusted.
     // REASON: after a hit or a wheel slip the odometry is wrong, and with normal std devs vision fixes it only slowly

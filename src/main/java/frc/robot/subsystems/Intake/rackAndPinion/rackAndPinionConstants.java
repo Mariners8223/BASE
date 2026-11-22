@@ -8,7 +8,7 @@ import frc.util.PIDFGains;
 
 public class rackAndPinionConstants {
     public static final ControllerLocation CONTROLLER_LOCATION = ControllerLocation.MOTOR;
-    public static final int motorID = 0; // TODO: real CAN ID (0 is shared with the hood and funnel motors)
+    public static final int motorID = 16; // TODO: real CAN ID (0 is shared with the hood and funnel motors)
     // FIX: new. Starting gains for position control (volts per rotation of error) - TUNE ON THE ROBOT
     public static final PIDFGains PID = new PIDFGains(1, 0, 0);
     public static final int currentLimit = 100;
