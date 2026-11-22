@@ -7,13 +7,13 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import frc.util.PIDFGains;
 
 public enum DevBotConstants {
-    FRONT_LEFT(3, 5, 8,
+    FRONT_LEFT(5, 5, 6,
             false, false, -0.359619,
             new PIDFGains(50, 0, 0), //Drive motor PID
             new PIDFGains(25, 20, 0, 0, 0.001, 0.05), //Steer motor PID
             0.12069, 2.4564, 0.50368, 0.40371, 1.7422, 0.25834),
 
-    FRONT_RIGHT(4, 2, 14,
+    FRONT_RIGHT(1, 2, 3,
     false, false, 0.081299,
             new PIDFGains(50, 0, 0), //Drive motor PID
             new PIDFGains(25, 20, 0, 0,  0.001, 0.05), //Steer motor PID
@@ -25,7 +25,7 @@ public enum DevBotConstants {
             new PIDFGains(25, 20, 0, 0, 0.001, 0.05), //Steer motor PID
             0.061361, 2.5147, 0.54424, 0.35616, 1.6894, 0.1793),
 
-    BACK_RIGHT(9, 11, 11,
+    BACK_RIGHT(10, 11, 12,
     false, false, -0.08252,
             new PIDFGains(50, 0, 0), //Drive motor PID
             new PIDFGains(25, 20, 0, 0, 0.001, 0.05), //Steer motor PID
