@@ -16,7 +16,7 @@ public class flyWheelConstants {
     public static final boolean IS_INVERTED = false;
     public static final boolean IS_FOLLOWER_INVERTED_FROM_LEAD = true; 
 
-    public static final double GEAR_RATIO = 3; // TODO: check. With ratio 3 and KV 0.36, 12V tops out near 2000 RPM, but SHOT_TABLE asks for 2500-3870
+    public static final double GEAR_RATIO = 225; // TODO: check. With ratio 3 and KV 0.36, 12V tops out near 2000 RPM, but SHOT_TABLE asks for 2500-3870
     public static final int CURRENT_LIMIT = 80;
     public static final int CURRENT_THRESHOLD = 100;
     public static final double KS = 0.1; 
@@ -28,15 +28,15 @@ public class flyWheelConstants {
         return Math.abs(motor.getMotor().getStatorCurrent().getValueAsDouble());
     }
     private static final double[][] SHOT_TABLE = {
-        {1.8, 0.167, 2500},
-        {2.3, 0.271, 2630},
-        {2.8, 0.375, 2790},
-        {3.3, 0.479, 2990},
-        {3.8, 0.583, 3240},
-        {4.3, 0.688, 3500},
-        {4.8, 0.792, 3630},
-        {5.3, 0.896, 3700},
-        {5.8, 1.0,   3870},
+        {1.8, 0.167, 200},
+        {2.3, 0.271, 200},
+        {2.8, 0.375, 200},
+        {3.3, 0.479, 200},
+        {3.8, 0.583, 200},
+        {4.3, 0.688, 200},
+        {4.8, 0.792, 200},
+        {5.3, 0.896, 200},
+        {5.8, 1.0,   200},
     };
     public static final double MIN_TABLE_DISTANCE = 1.8;
     public static final double MAX_TABLE_DISTANCE = 5.8;

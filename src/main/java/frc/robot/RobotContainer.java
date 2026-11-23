@@ -276,18 +276,18 @@ public class RobotContainer {
     public static void configureMechanismBindings() {
         driveController.L1().whileTrue(intakeWithSlowDrive.get());
  
-        driveController.L2().whileTrue(pass.get());
+        // driveController.L2().whileTrue(pass.get());
  
-        driveController.R1().whileTrue(shoot.get());
+        // driveController.R1().whileTrue(shoot.get());
 
-        driveController.R1().and(RobotContainer::readyToShoot).whileTrue(feed.get()).whileTrue(cycleIntakeWhileShooting.get());
+        // driveController.R1().and(RobotContainer::readyToShoot).whileTrue(feed.get()).whileTrue(cycleIntakeWhileShooting.get());
 
-        //fix: CHANGE: new. Hold cross = manual shot (fixed distance, the driver aims). Feeds when the hood and flywheel
+        // fix: CHANGE: new. Hold cross = manual shot (fixed distance, the driver aims). Feeds when the hood and flywheel
         // are ready. It does not check the pose or the robot angle at all, so it still works when the pose is wrong.
-        driveController.cross().whileTrue(manualShoot.get());
-        driveController.cross().and(RobotContainer::manualReadyToShoot).whileTrue(feed.get()).whileTrue(cycleIntakeWhileShooting.get());
+        // driveController.cross().whileTrue(manualShoot.get());
+        // driveController.cross().and(RobotContainer::manualReadyToShoot).whileTrue(feed.get()).whileTrue(cycleIntakeWhileShooting.get());
  
-        driveController.triangle().whileTrue(outtake.get());
+        //driveController.triangle().whileTrue(outtake.get());
  
         driveController.square().onTrue(
             Commands.runOnce(() -> {
@@ -299,17 +299,15 @@ public class RobotContainer {
                 }
             })
         ); 
-        new Trigger(() -> rackAndPinion.isJammed() && intakeExtended)
-            .onTrue(retractIntake.get());
+        // new Trigger(() -> rackAndPinion.isJammed() && intakeExtended)
+        //     .onTrue(retractIntake.get());
         
-        new Trigger(() -> ((HubTracker.isActive(Robot.isRedAlliance ? Alliance.Red : Alliance.Blue)) && !isShooting)) 
-            .whileTrue(warmpupshooterMin.get());
-        new Trigger(() ->(getPreWarm() && !isShooting))
-            .whileTrue(warmpupshooterMin.get());
+        // new Trigger(() -> ((HubTracker.isActive(Robot.isRedAlliance ? Alliance.Red : Alliance.Blue)) && !isShooting)) 
+        //     .whileTrue(warmpupshooterMin.get());
+        // new Trigger(() ->(getPreWarm() && !isShooting))
+        //     .whileTrue(warmpupshooterMin.get());
         }
 
-  
-        
     public static void configureDriveBindings() {
         new Trigger(RobotState::isTeleop).and(RobotState::isEnabled).whileTrue(
             new StartEndCommand(() -> driveBase.setDefaultCommand(new DriveCommand(driveBase, driveController)),

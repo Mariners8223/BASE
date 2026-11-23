@@ -13,7 +13,7 @@ public class rackAndPinionConstants {
     public static final PIDFGains PID = new PIDFGains(1, 0, 0);
     public static final int currentLimit = 100;
     public static final int currentThreshhold = 80;
-    public static final double MAX_PINION_POWER = 1;
+    public static final double MAX_PINION_POWER = 0.1;
     public static final double pinionRotation = 6;
     public static final double STALL_CURRENT = 60;
     public static final double STALL_POSITION_CHANGE = 0.002; 
