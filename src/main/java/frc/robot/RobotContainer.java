@@ -342,7 +342,7 @@ public class RobotContainer {
             autoChooser.addOption(auto.getName(), auto);
             mirroredAutoMap.put(autoName, mirrored);
         } catch (Exception e) {
-            DriverStation.reportError("Skipping broken auto '" + autoName + "': " + e.getMessage(), e.getStackTrace());
+            //DriverStation.reportError("Skipping broken auto '" + autoName + "': " + e.getMessage(), e.getStackTrace());
         }
     }
 
@@ -370,7 +370,7 @@ public class RobotContainer {
                 poses.addAll(path.getPathPoses());
             });
         } catch (IOException | ParseException e) {
-            DriverStation.reportError("Error loading auto path", e.getStackTrace());
+            //DriverStation.reportError("Error loading auto path", e.getStackTrace());
         }
 
         Robot.setTrajectoryField("AutoPath", poses);

@@ -7,7 +7,7 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import frc.util.PIDFGains;
 
 public enum DevBotConstants {
-    FRONT_LEFT(5, 5, 6,
+    FRONT_LEFT(4, 5, 6,
             false, false, -0.359619,
             new PIDFGains(50, 0, 0), //Drive motor PID
             new PIDFGains(25, 20, 0, 0, 0.001, 0.05), //Steer motor PID
