@@ -33,7 +33,7 @@ public class SwerveModuleIOSIM extends SwerveModuleIO {
         steerMotorPIDController = constants.STEER_MOTOR_PID;
 
         driveMotorModel = DCMotor.getKrakenX60(1);
-        steerMotorModel = DCMotor.getNEO(1);
+        steerMotorModel = DCMotor.getKrakenX44(1);
 
         DRIVE_KS = constants.DRIVE_KS;
         DRIVE_KV = constants.DRIVE_KV;
