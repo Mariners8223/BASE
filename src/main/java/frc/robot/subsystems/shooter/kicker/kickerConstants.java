@@ -11,8 +11,8 @@ public class kickerConstants {
     public static final int LEAD_MOTOR_CURRENT_THRESHOLD = 80;
     public static final int LEAD_MOTOR_ID = 21;
     public static final int FOLLOW_MOTOR_ID = 22;
-    public static final boolean LEAD_MOTOR_IS_INVERTED = false;
+    public static final boolean LEAD_MOTOR_IS_INVERTED = true;
     public static final boolean FOLLOW_MOTOR_INVERTED_FROM_LEAD = true;
     public static final double KICKER_EJECT_SPEED = -0.8;
-    public static final double DUTY_CYCLE = 1;
+    public static final double DUTY_CYCLE = 0.5;
 }

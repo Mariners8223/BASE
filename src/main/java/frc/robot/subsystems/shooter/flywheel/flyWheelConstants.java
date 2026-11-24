@@ -28,15 +28,15 @@ public class flyWheelConstants {
         return Math.abs(motor.getMotor().getStatorCurrent().getValueAsDouble());
     }
     private static final double[][] SHOT_TABLE = {
-        {1.8, 0.167, 200},
-        {2.3, 0.271, 200},
-        {2.8, 0.375, 200},
-        {3.3, 0.479, 200},
-        {3.8, 0.583, 200},
-        {4.3, 0.688, 200},
-        {4.8, 0.792, 200},
-        {5.3, 0.896, 200},
-        {5.8, 1.0,   200},
+        {1.8, 0.167, 1000},
+        {2.3, 0.271, 1000},
+        {2.8, 0.375, 1000},
+        {3.3, 0.479, 1000},
+        {3.8, 0.583, 1000},
+        {4.3, 0.688, 1000},
+        {4.8, 0.792, 1000},
+        {5.3, 0.896, 1000},
+        {5.8, 1.0,  1000},
     };
     public static final double MIN_TABLE_DISTANCE = 1.8;
     public static final double MAX_TABLE_DISTANCE = 5.8;
@@ -52,6 +52,12 @@ public class flyWheelConstants {
     }
 
     public static double getHoodPercent(double distanceToHub) {
+        if (distanceToHub == 9999) {
+            return 1;
+        }
+        if (distanceToHub == 6767) {
+            return 0;
+        }
         return DISTANCE_TO_HOOD_PERCENT.get(distanceToHub);
     }
 

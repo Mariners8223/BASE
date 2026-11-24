@@ -124,7 +124,8 @@ public class RobotContainer {
     public static Supplier<Command> manualShoot; //fix: CHANGE: new, the manual shot (cross button)
     public static Supplier<Command> startRollers;
     public static Supplier<Command> stopRollers;
-    public static Supplier<Command> Flywheel;
+    public static Supplier<Command> Test;
+    public static boolean ishoodopen = false;
 
     //#endregion
  
@@ -254,13 +255,15 @@ public class RobotContainer {
         stopRollers = () ->
             Commands.runOnce(rollers::stopMotor, rollers)
                 .withName("Stop Rollers");
-        Flywheel = () ->
-            new kickerOn(kicker)
-            // new flyWheelCommand(flywheel, () -> 3)
-            //     .alongWith(new transferOn(transfer))
-            //     .alongWith(new kickerOn(kicker))
-                .withName("flywheel");
-            
+        Test = () -> 
+
+        // new openHood(hood, () -> 9999)
+        // new kickerOn(kicker)
+            new flyWheelCommand(flywheel, () -> 3)
+                .alongWith(new transferOn(transfer))
+                .alongWith(new kickerOn(kicker))
+            //     .alongWith(new RollerCommands(rollers))
+                .withName("test");
         }
      
 
@@ -277,13 +280,12 @@ public class RobotContainer {
     }
 
     public static void configureDefaultCommands() {
-        hood.setDefaultCommand(new openHood(hood, () -> 0));
     }
     //#endregion
  
     //#region Bindings
     public static void configureMechanismBindings() {
-        driveController.L1().and(() -> intakeExtended).whileTrue(intakeWithSlowDrive.get());
+        // driveController.L1().whileTrue(intakeWithSlowDrive.get());
  
         // driveController.L2().whileTrue(pass.get());
  
@@ -296,19 +298,21 @@ public class RobotContainer {
         // driveController.cross().whileTrue(manualShoot.get());
         // driveController.cross().and(RobotContainer::manualReadyToShoot).whileTrue(feed.get()).whileTrue(cycleIntakeWhileShooting.get());
  
-        //driveController.triangle().whileTrue(outtake.get());
+        //driveController.triangle().whileTrue(outtake.get()); 
+         
+
  
-        driveController.square().onTrue(
-            Commands.runOnce(() -> {
-                if (isCyclingIntake) {
-                    stopCyclingRequested = true; 
-                }
-                else {
-                    CommandScheduler.getInstance().schedule(toggleIntake.get());
-                }
-            })
-        ); 
-        driveController.R1().whileTrue(Flywheel.get());
+        // driveController.square().onTrue(
+        //     Commands.runOnce(() -> {
+        //         if (isCyclingIntake) {
+        //             stopCyclingRequested = true; 
+        //         }
+        //         else {
+        //             CommandScheduler.getInstance().schedule(toggleIntake.get());
+        //         }
+        //     })
+        // ); 
+        // driveController.R1().whileTrue(Flywheel.get());
         // new Trigger(() -> rackAndPinion.isJammed() && intakeExtended)
         //     .onTrue(retractIntake.get());
         
@@ -316,6 +320,8 @@ public class RobotContainer {
         //     .whileTrue(warmpupshooterMin.get());
         // new Trigger(() ->(getPreWarm() && !isShooting))
         //     .whileTrue(warmpupshooterMin.get());
+        driveController.R1().whileTrue(Test.get());
+
         }
 
     public static void configureDriveBindings() {
@@ -326,14 +332,14 @@ public class RobotContainer {
  
         driveController.PS().onTrue(driveBase.resetOnlyDirection());
  
-        driveController.povRight().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.RIGHT));
-        driveController.povLeft().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.LEFT));
-        driveController.povUp().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.FORWARD));
-        driveController.povDown().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.BACKWARDS));
-        driveController.povUpLeft().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.FRONT_LEFT));
-        driveController.povUpRight().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.FRONT_RIGHT));
-        driveController.povDownLeft().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.BACK_LEFT));
-        driveController.povDownRight().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.BACK_RIGHT));
+        // driveController.povRight().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.RIGHT));
+        // driveController.povLeft().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.LEFT));
+        // driveController.povUp().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.FORWARD));
+        // driveController.povDown().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.BACKWARDS));
+        // driveController.povUpLeft().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.FRONT_LEFT));
+        // driveController.povUpRight().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.FRONT_RIGHT));
+        // driveController.povDownLeft().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.BACK_LEFT));
+        // driveController.povDownRight().whileTrue(new MinorAdjust(driveBase, AdjustmentDirection.BACK_RIGHT));
     }
     //#endregion
     ////#region Choosers
