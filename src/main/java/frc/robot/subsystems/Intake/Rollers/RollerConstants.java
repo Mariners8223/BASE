@@ -7,7 +7,7 @@ public class RollerConstants {
     public static final ControllerLocation CONTROLLER_LOCATION = ControllerLocation.MOTOR;
     public static final int MOTOR_ID = 14; // TODO: check - the flywheel also uses 8
     public static final int SEC_MOTOR_ID = 15; // TODO: check - the flywheel also uses 24
-    public static final boolean IS_INVERTED = false;
+    public static final boolean IS_INVERTED = true;
     public static final boolean IS_SEC_INVERTED = false; // we need to check it but for now its inverted
     public static final double GEAR_RATIO = 3;
     public static final double DUTY_CYCLE = 0.3;

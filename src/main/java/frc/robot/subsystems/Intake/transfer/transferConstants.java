@@ -8,8 +8,8 @@ public class transferConstants {
     public static final ControllerLocation CONTROLLER_LOCATION = ControllerLocation.MOTOR;
     public static final int MOTOR_ID = 23; 
     public static final boolean isBrushless = true;
-    public static final double DUTY_CYCLE = 0.8;
-    public static final boolean isInverted = true;
+    public static final double DUTY_CYCLE = 0.06;
+    public static final boolean isInverted = false;
     public static final int CURRENT_LIMIT = 100;
     public static final int CURRENT_THRESHOLD = 80;
     public static final ControllerLocation FUNNEL_CONTROLLER_LOCATION = ControllerLocation.MOTOR;

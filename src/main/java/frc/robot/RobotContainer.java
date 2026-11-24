@@ -124,6 +124,7 @@ public class RobotContainer {
     public static Supplier<Command> manualShoot; //fix: CHANGE: new, the manual shot (cross button)
     public static Supplier<Command> startRollers;
     public static Supplier<Command> stopRollers;
+    public static Supplier<Command> Flywheel;
 
     //#endregion
  
@@ -253,7 +254,15 @@ public class RobotContainer {
         stopRollers = () ->
             Commands.runOnce(rollers::stopMotor, rollers)
                 .withName("Stop Rollers");
+        Flywheel = () ->
+            new kickerOn(kicker)
+            // new flyWheelCommand(flywheel, () -> 3)
+            //     .alongWith(new transferOn(transfer))
+            //     .alongWith(new kickerOn(kicker))
+                .withName("flywheel");
+            
         }
+     
 
     public static void configureNamedCommands() {
         NamedCommands.registerCommand("shoot to hub", shootWhenReady.get().withTimeout(6));
@@ -274,7 +283,7 @@ public class RobotContainer {
  
     //#region Bindings
     public static void configureMechanismBindings() {
-        driveController.L1().whileTrue(intakeWithSlowDrive.get());
+        driveController.L1().and(() -> intakeExtended).whileTrue(intakeWithSlowDrive.get());
  
         // driveController.L2().whileTrue(pass.get());
  
@@ -299,6 +308,7 @@ public class RobotContainer {
                 }
             })
         ); 
+        driveController.R1().whileTrue(Flywheel.get());
         // new Trigger(() -> rackAndPinion.isJammed() && intakeExtended)
         //     .onTrue(retractIntake.get());
         
