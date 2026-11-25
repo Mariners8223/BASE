@@ -408,6 +408,22 @@ public class RobotContainer {
         }
     };
 
+    /**
+     * Runs in Test mode. Lets you drive every mechanism from AdvantageScope (NetworkTables "/Tuning/..."):
+     * duty cycle for each motor, position (rotations) for the hood and rack and pinion, RPM for the flywheel.
+     * A value is applied when you change it. Everything starts stopped and stops again when Test mode ends.
+     */
+    public static Command getTuningCommand() {
+        return Commands.parallel(
+            hood.tuningCommand(),
+            flywheel.tuningCommand(),
+            kicker.tuningCommand(),
+            transfer.tuningCommand(),
+            rackAndPinion.tuningCommand(),
+            rollers.tuningCommand()
+        ).withName("Tuning Mode");
+    }
+
     public static Command getAuto(){
     Command selected = autoChooser.get();
     if (sideChooser.get().equals("right")) return selected;

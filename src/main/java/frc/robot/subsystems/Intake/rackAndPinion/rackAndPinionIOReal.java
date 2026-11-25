@@ -32,4 +32,7 @@ public class rackAndPinionIOReal implements rackAndPinionIO {
     public void stop() {
         pinionMotor.stopMotor();
     }
+    public void setDutyCycle(double dutyCycle) {
+        pinionMotor.setDutyCycle(dutyCycle);
+    }
 }

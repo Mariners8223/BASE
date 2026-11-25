@@ -8,4 +8,6 @@ public interface transferIO {
 
     }
     void setDutyCycle(double dutyCycle);
+    void setTransferDutyCycle(double dutyCycle);
+    void setFunnelDutyCycle(double dutyCycle);
 }

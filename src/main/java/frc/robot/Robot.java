@@ -30,6 +30,7 @@ import frc.util.Elastic;
 
 public class Robot extends LoggedRobot {
     private Command autonomousCommand;
+    private Command tuningCommand;
     public static boolean isRedAlliance = false;
 
     private static final Field2d field = new Field2d();
@@ -133,6 +134,21 @@ public class Robot extends LoggedRobot {
         Robot.clearObjectPoseField("AutoPath");
         if (autonomousCommand != null) {
             autonomousCommand.cancel();
+        }
+    }
+
+    // Test mode = tuning from AdvantageScope. See RobotContainer.getTuningCommand().
+    @Override
+    public void testInit() {
+        CommandScheduler.getInstance().cancelAll();
+        tuningCommand = RobotContainer.getTuningCommand();
+        CommandScheduler.getInstance().schedule(tuningCommand);
+    }
+
+    @Override
+    public void testExit() {
+        if (tuningCommand != null) {
+            tuningCommand.cancel();
         }
     }
 

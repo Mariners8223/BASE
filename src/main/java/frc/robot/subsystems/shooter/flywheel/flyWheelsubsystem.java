@@ -3,7 +3,10 @@ package frc.robot.subsystems.Shooter.flywheel;
 import java.util.function.DoubleSupplier;
 
 
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.util.TunableNumber;
 
 import static edu.wpi.first.units.Units.Volts;
 import org.littletonrobotics.junction.Logger;
@@ -13,6 +16,8 @@ public class flyWheelsubsystem extends SubsystemBase {
     private final flyWheelIO io;
     private final flyWheelInputsAutoLogged inputs = new flyWheelInputsAutoLogged();
     private double targetRPM = 0;
+    private final TunableNumber tuningDutyCycle = new TunableNumber("Flywheel/DutyCycle", 0);
+    private final TunableNumber tuningRPM = new TunableNumber("Flywheel/RPM", 0);
 
 
     public flyWheelsubsystem() {
@@ -33,6 +38,35 @@ public class flyWheelsubsystem extends SubsystemBase {
     }
     public double getCurrent() {
         return inputs.current;
+    }
+
+    /**
+     * Test mode: drive the flywheel from AdvantageScope (/Tuning/Flywheel/...).
+     * Editing DutyCycle runs open loop, editing RPM runs the velocity PID at that RPM (0 = stop).
+     */
+    public Command tuningCommand() {
+        return startRun(
+            () -> {
+                tuningDutyCycle.markSeen();
+                tuningRPM.markSeen();
+                stop();
+            },
+            () -> {
+                if (tuningDutyCycle.hasChanged()) {
+                    targetRPM = 0;
+                    io.setDutyCycle(MathUtil.clamp(tuningDutyCycle.get(), -1, 1));
+                }
+                if (tuningRPM.hasChanged()) {
+                    if (tuningRPM.get() == 0) {
+                        stop();
+                    } else {
+                        targetRPM = tuningRPM.get();
+                        io.setRPM(targetRPM);
+                    }
+                }
+            })
+            .finallyDo(this::stop)
+            .withName("Flywheel Tuning");
     }
 
     @Override

@@ -67,4 +67,8 @@ public class hoodIOReal implements hoodIO {
     public void setVoltage(double volts) {
         hoodMotor.setVoltage(volts);
     }
+    @Override
+    public void setDutyCycle(double dutyCycle) {
+        hoodMotor.setDutyCycle(dutyCycle);
+    }
 }

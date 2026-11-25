@@ -22,4 +22,12 @@ public class transferIOReal implements transferIO {
         transferMotor.setDutyCycle(dutyCycle);
         funnelMotor.setDutyCycle(dutyCycle);
     }
+    @Override
+    public void setTransferDutyCycle(double dutyCycle) {
+        transferMotor.setDutyCycle(dutyCycle);
+    }
+    @Override
+    public void setFunnelDutyCycle(double dutyCycle) {
+        funnelMotor.setDutyCycle(dutyCycle);
+    }
 }

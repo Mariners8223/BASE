@@ -38,4 +38,8 @@ public class flyWheelIOReal implements flyWheelIO {
     public void setVoltage(double volts) {
         leadFlyWheel.setVoltage(volts);
     }
+    @Override
+    public void setDutyCycle(double dutyCycle) {
+        leadFlyWheel.setDutyCycle(dutyCycle);
+    }
 }

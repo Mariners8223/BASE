@@ -9,4 +9,6 @@ public interface RollersIO {
 
     }
     void setDutyCycle(double dutyCycle);
+    void setFirstDutyCycle(double dutyCycle);
+    void setSecondDutyCycle(double dutyCycle);
 }

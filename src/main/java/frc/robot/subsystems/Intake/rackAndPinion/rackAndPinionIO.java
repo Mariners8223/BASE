@@ -14,4 +14,5 @@ public interface rackAndPinionIO {
     void extendTo(double PinionRotation);
     void update(rackAndPinionInputs inputs);
     void stop();
+    void setDutyCycle(double dutyCycle);
 }

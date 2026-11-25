@@ -41,4 +41,12 @@ public class RollersIOReal implements RollersIO {
             FirstMotor.setDutyCycle(dutyCycle);
             SecondMotor.setDutyCycle(dutyCycle);
         }
+
+        public void setFirstDutyCycle(double dutyCycle){
+            FirstMotor.setDutyCycle(dutyCycle);
+        }
+
+        public void setSecondDutyCycle(double dutyCycle){
+            SecondMotor.setDutyCycle(dutyCycle);
+        }
     }

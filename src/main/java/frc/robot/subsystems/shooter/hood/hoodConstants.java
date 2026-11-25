@@ -20,6 +20,8 @@ public class hoodConstants {
     public static final int CURRENT_THRESHOLD = 80;
     public static final boolean IS_INVERTED = false;
     public static final double HOOD_SPEED = 0.1 * 12; //duty cycle 0.1 -> * 12 to volt
+    // Max duty cycle you can type in from AdvantageScope tuning (same limit as HOOD_SPEED)
+    public static final double TUNING_MAX_DUTY_CYCLE = HOOD_SPEED / 12;
     public static final double GEAR_RATIO = 225;
 
     public static final double MAX_ANGLE_MOVEMENT_IN_MOTOR_ROTATIONS = 0.31; 

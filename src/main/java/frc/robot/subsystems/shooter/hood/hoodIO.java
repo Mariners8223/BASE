@@ -12,4 +12,5 @@ public interface hoodIO {
     void openToPosition(double openPosition);
     void update(hoodIOInputs inputs);
     void setVoltage(double volts);
+    void setDutyCycle(double dutyCycle);
 }
