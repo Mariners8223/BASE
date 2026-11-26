@@ -40,4 +40,9 @@ public class hoodConstants {
     public static final double SYSID_TIMEOUT_SECONDS = 4;
     public static final double SYSID_LIMIT_MARGIN_IN_MOTOR_ROTATIONS = 0.5;
 
+
+    //LERP constants(linear interpolation)
+    public static final double LERP_MIN_VAL = 0;
+    public static final double LERP_MAX_VALUE = 100;
+
 }

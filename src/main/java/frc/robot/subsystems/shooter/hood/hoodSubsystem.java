@@ -51,6 +51,9 @@ public class hoodSubsystem extends SubsystemBase {
             io.openToPosition(targetPosition);
         }
     }
+    public void openToPosition(double Position){
+        io.openToPosition(Position);
+    }
     public boolean atAngle() {
         return Math.abs(inputs.hoodOpen - targetPosition) < hoodConstants.POSITION_TOLERANCE_IN_MOTOR_ROTATIONS;
     }

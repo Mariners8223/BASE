@@ -61,6 +61,7 @@ import frc.robot.subsystems.Shooter.flywheel.flyWheelCommand;
 import frc.robot.subsystems.Shooter.flywheel.flyWheelConstants;
 import frc.robot.subsystems.Shooter.flywheel.flyWheelsubsystem;
 import frc.robot.subsystems.Shooter.hood.hoodConstants;
+import frc.robot.subsystems.Shooter.hood.hoodLerp;
 import frc.robot.subsystems.Shooter.hood.homeHood;
 import frc.robot.subsystems.Shooter.hood.hoodSubsystem;
 import frc.robot.subsystems.Shooter.hood.openHood;
@@ -287,6 +288,9 @@ public class RobotContainer {
         stopRollers = () ->
             Commands.runOnce(rollers::stopMotor, rollers)
                 .withName("Stop Rollers");
+        // hoodLerp = () ->
+        // Commands.runOnce(() -> hood.openToPosition(2), hood)
+        // .withName("hood Lerp");
         Test = () -> 
 
         // new openHood(hood, () -> 9999)
@@ -353,6 +357,7 @@ public class RobotContainer {
         // new Trigger(() ->(getPreWarm() && !isShooting))
         // .whileTrue(warmpupshooterMin.get());
         driveController.R1().whileTrue(Test.get());
+        driveController.L3().whileTrue(new hoodLerp(hood, 50));
 
     }
 
