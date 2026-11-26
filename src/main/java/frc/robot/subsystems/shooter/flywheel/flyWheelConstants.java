@@ -19,9 +19,14 @@ public class flyWheelConstants {
     public static final double GEAR_RATIO = 225; // TODO: check. With ratio 3 and KV 0.36, 12V tops out near 2000 RPM, but SHOT_TABLE asks for 2500-3870
     public static final int CURRENT_LIMIT = 80;
     public static final int CURRENT_THRESHOLD = 100;
-    public static final double KS = 0.1; 
-    public static final double KV = 0.36;  
-    public static final PIDFGains PID = new PIDFGains(0.05, 0, 0, KV);
+    // Gains are set per motor rotation and multiplied by GEAR_RATIO, because the controller
+    // works in flywheel rotations per second. That keeps them right if GEAR_RATIO changes.
+    public static final double MOTOR_KV = 0.12; // volts per motor rot/s (Kraken/Falcon: 12V / ~100 rot/s free speed)
+    public static final double MOTOR_KP = 0.15; // volts per motor rot/s of error
+    public static final double KS = 0.1; // volts to overcome friction
+    public static final double KV = MOTOR_KV * GEAR_RATIO;
+    public static final double KP = MOTOR_KP * GEAR_RATIO;
+    public static final PIDFGains PID = new PIDFGains(KP, 0, 0, KV);
     public static final double RPM_TOLERANCE = 100;
     public static final double CURRENT_WHEN_SHOOTING = 115; // TODO: find the number of current while shooting
     public static double getCurrent(MarinersTalonFX motor) {
