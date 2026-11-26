@@ -19,21 +19,21 @@ public class hoodConstants {
     public static final int CURRENT_LIMIT = 100;
     public static final int CURRENT_THRESHOLD = 80;
     public static final boolean IS_INVERTED = false;
-    public static final double HOOD_SPEED = 0.1 * 12; //duty cycle 0.1 -> * 12 to volt
+    public static final double HOOD_SPEED = 0.75 * 12; //duty cycle 0.1 -> * 12 to volt
     // Max duty cycle you can type in from AdvantageScope tuning (same limit as HOOD_SPEED)
     public static final double TUNING_MAX_DUTY_CYCLE = HOOD_SPEED / 12;
     public static final double GEAR_RATIO = 225;
 
-    public static final double MAX_ANGLE_MOVEMENT_IN_MOTOR_ROTATIONS = 0.31; 
+    public static final double MAX_ANGLE_MOVEMENT_IN_MOTOR_ROTATIONS = 0.37; 
     public static final double POSITION_TOLERANCE_IN_MOTOR_ROTATIONS = 0.01;
 
     // Homing (runs once on the first enable): drive the hood closed at -HOMING_DUTY_CYCLE until the stator current
     // jumps (hood hit the hard stop), then stop and zero the encoder.
     public static final double HOMING_DUTY_CYCLE = 0.1; // TODO: tune on the robot
-    public static final double HOMING_CURRENT_THRESHOLD_AMPS = 20; // TODO: tune: above free-moving current, below stall current
+    public static final double HOMING_CURRENT_THRESHOLD_AMPS = 30; 
     public static final double HOMING_CURRENT_DEBOUNCE_SECONDS = 0.1; // current must stay high this long (filters noise)
-    public static final double HOMING_IGNORE_START_SECONDS = 0.25; // ignore the inrush spike when the motor starts
-    public static final double HOMING_TIMEOUT_SECONDS = 3; // safety: give up if the stop is never detected
+    public static final double HOMING_IGNORE_START_SECONDS = 0.5;
+    public static final double HOMING_TIMEOUT_SECONDS = 10;
 
     public static final double SYSID_RAMP_VOLTS_PER_SECOND = 0.5;
     public static final double SYSID_STEP_VOLTS = 2;

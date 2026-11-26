@@ -8,10 +8,6 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 
-/**
- * Drives the hood closed at -HOMING_DUTY_CYCLE until the stator current jumps (hood hit the hard stop),
- * then stops and resets the encoder.
- */
 public class homeHood extends Command {
   private final hoodSubsystem hood;
   private final Timer homingTimer = new Timer();
@@ -37,11 +33,9 @@ public class homeHood extends Command {
   @Override
   public void execute() {
     hood.setDutyCycle(-hoodConstants.HOMING_DUTY_CYCLE);
-
-    // ignore the current spike when the motor starts
     boolean currentHigh = homingTimer.hasElapsed(hoodConstants.HOMING_IGNORE_START_SECONDS)
-        && Math.abs(hood.getStatorCurrent()) > hoodConstants.HOMING_CURRENT_THRESHOLD_AMPS;
-
+    && Math.abs(hood.getStatorCurrent()) > hoodConstants.HOMING_CURRENT_THRESHOLD_AMPS;
+    
     if (currentHigh) {
       statorCurrentTimer.start();
     } else {

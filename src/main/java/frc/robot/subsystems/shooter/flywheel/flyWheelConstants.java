@@ -21,11 +21,11 @@ public class flyWheelConstants {
     public static final int CURRENT_THRESHOLD = 100;
     // Gains are set per motor rotation and multiplied by GEAR_RATIO, because the controller
     // works in flywheel rotations per second. That keeps them right if GEAR_RATIO changes.
-    public static final double MOTOR_KV = 0.12; // volts per motor rot/s (Kraken/Falcon: 12V / ~100 rot/s free speed)
-    public static final double MOTOR_KP = 0.15; // volts per motor rot/s of error
-    public static final double KS = 0.1; // volts to overcome friction
-    public static final double KV = MOTOR_KV * GEAR_RATIO;
-    public static final double KP = MOTOR_KP * GEAR_RATIO;
+    public static final double MOTOR_KV = 0.018; 
+    public static final double MOTOR_KP = 3; // volts per motor rot/s of error
+    public static final double KS = 0.036 * 12; // volts to overcome friction
+    public static final double KV = MOTOR_KV;
+    public static final double KP = MOTOR_KP;
     public static final PIDFGains PID = new PIDFGains(KP, 0, 0, KV);
     public static final double RPM_TOLERANCE = 100;
     public static final double CURRENT_WHEN_SHOOTING = 115; // TODO: find the number of current while shooting
@@ -45,7 +45,7 @@ public class flyWheelConstants {
     };
     public static final double MIN_TABLE_DISTANCE = 1.8;
     public static final double MAX_TABLE_DISTANCE = 5.8;
-
+    
 
     private static final InterpolatingDoubleTreeMap DISTANCE_TO_HOOD_PERCENT = new InterpolatingDoubleTreeMap();
     private static final InterpolatingDoubleTreeMap DISTANCE_TO_RPM = new InterpolatingDoubleTreeMap();
@@ -55,12 +55,13 @@ public class flyWheelConstants {
             DISTANCE_TO_RPM.put(SHOT_TABLE[i][0], SHOT_TABLE[i][2]);
         }
     }
-
+    public static final double shouldMAX = 532523;
+    public static final double shouldMIN = 532351;
     public static double getHoodPercent(double distanceToHub) {
-        if (distanceToHub == 9999) {
+        if (distanceToHub == shouldMAX) {
             return 1;
         }
-        if (distanceToHub == 6767) {
+        if (distanceToHub == shouldMIN) {
             return 0;
         }
         return DISTANCE_TO_HOOD_PERCENT.get(distanceToHub);
