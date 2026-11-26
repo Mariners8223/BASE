@@ -36,6 +36,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -164,35 +165,40 @@ public class RobotContainer {
     public static void configureCommands() {
         fuelIncrementer = () -> fuelApproximation += 3;
 
-        // Hood homing: close at -HOMING_DUTY_CYCLE until the current jumps, then stop and reset the encoder
         homeHood = () -> {
-            Debouncer stallDebouncer = new Debouncer(hoodConstants.HOMING_CURRENT_DEBOUNCE_SECONDS, DebounceType.kRising);
-            Timer timer = new Timer();
-            return Commands.startRun(
-                () -> {
-                    hood.setHomed(false);
-                    stallDebouncer.calculate(false);
-                    timer.restart();
-                    hood.setSoftLimitsEnabled(false);
-                    hood.setDutyCycle(-hoodConstants.HOMING_DUTY_CYCLE);
-                },
-                () -> hood.setDutyCycle(-hoodConstants.HOMING_DUTY_CYCLE),
-                hood)
-                .until(() -> stallDebouncer.calculate(
-                    timer.hasElapsed(hoodConstants.HOMING_IGNORE_START_SECONDS)
-                    && Math.abs(hood.getStatorCurrent()) > hoodConstants.HOMING_CURRENT_THRESHOLD_AMPS))
-                .finallyDo(interrupted -> {
-                    hood.setDutyCycle(0);
-                    if (!interrupted) {
-                        hood.resetAngleEncoder();
-                        hood.setHomed(true);
-                    } else {
-                        DriverStation.reportWarning("Hood: homing did not finish (timeout or interrupted), encoder not reset", false);
-                    }
-                    hood.setSoftLimitsEnabled(true);
-                })
-                .withTimeout(hoodConstants.HOMING_TIMEOUT_SECONDS)
-                .withName("Hood Homing");
+            Timer statorCurrentTimer = new Timer();
+            Timer homingTimer = new Timer();
+            return new InstantCommand(() -> {
+                hood.setHomed(false);
+                hood.setSoftLimitsEnabled(false);
+                statorCurrentTimer.stop();
+                statorCurrentTimer.reset();
+                homingTimer.restart();
+            })
+            .andThen(new RunCommand(() -> {
+                hood.setDutyCycle(-hoodConstants.HOMING_DUTY_CYCLE);
+                // ignore the current spike when the motor starts
+                boolean currentHigh = homingTimer.hasElapsed(hoodConstants.HOMING_IGNORE_START_SECONDS)
+                    && Math.abs(hood.getStatorCurrent()) > hoodConstants.HOMING_CURRENT_THRESHOLD_AMPS;
+                if (currentHigh) {
+                    statorCurrentTimer.start();
+                } else {
+                    statorCurrentTimer.stop();
+                    statorCurrentTimer.reset();
+                }
+            }, hood).until(() -> statorCurrentTimer.hasElapsed(hoodConstants.HOMING_CURRENT_DEBOUNCE_SECONDS)))
+            .finallyDo(interrupted -> {
+                hood.setDutyCycle(0);
+                if (!interrupted) {
+                    hood.resetAngleEncoder();
+                    hood.setHomed(true);
+                } else {
+                    DriverStation.reportWarning("Hood: homing did not finish (timeout or interrupted), encoder not reset", false);
+                }
+                hood.setSoftLimitsEnabled(true);
+            })
+            .withTimeout(hoodConstants.HOMING_TIMEOUT_SECONDS)
+            .withName("Hood Homing");
         };
  
         intakeWithSlowDrive = () ->
