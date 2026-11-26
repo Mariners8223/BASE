@@ -59,6 +59,7 @@ import frc.robot.subsystems.Intake.transfer.transferSubsystem;
 import frc.robot.subsystems.Shooter.flywheel.flyWheelCommand;
 import frc.robot.subsystems.Shooter.flywheel.flyWheelConstants;
 import frc.robot.subsystems.Shooter.flywheel.flyWheelsubsystem;
+import frc.robot.subsystems.Shooter.hood.hoodConstants;
 import frc.robot.subsystems.Shooter.hood.hoodSubsystem;
 import frc.robot.subsystems.Shooter.hood.openHood;
 import frc.robot.subsystems.Shooter.kicker.kickerOn;
@@ -125,6 +126,7 @@ public class RobotContainer {
     public static Supplier<Command> startRollers;
     public static Supplier<Command> stopRollers;
     public static Supplier<Command> Test;
+    public static Supplier<Command> homeHood;
     public static boolean ishoodopen = false;
 
     //#endregion
@@ -161,6 +163,37 @@ public class RobotContainer {
     //#region Commands
     public static void configureCommands() {
         fuelIncrementer = () -> fuelApproximation += 3;
+
+        // Hood homing: close at -HOMING_DUTY_CYCLE until the current jumps, then stop and reset the encoder
+        homeHood = () -> {
+            Debouncer stallDebouncer = new Debouncer(hoodConstants.HOMING_CURRENT_DEBOUNCE_SECONDS, DebounceType.kRising);
+            Timer timer = new Timer();
+            return Commands.startRun(
+                () -> {
+                    hood.setHomed(false);
+                    stallDebouncer.calculate(false);
+                    timer.restart();
+                    hood.setSoftLimitsEnabled(false);
+                    hood.setDutyCycle(-hoodConstants.HOMING_DUTY_CYCLE);
+                },
+                () -> hood.setDutyCycle(-hoodConstants.HOMING_DUTY_CYCLE),
+                hood)
+                .until(() -> stallDebouncer.calculate(
+                    timer.hasElapsed(hoodConstants.HOMING_IGNORE_START_SECONDS)
+                    && Math.abs(hood.getStatorCurrent()) > hoodConstants.HOMING_CURRENT_THRESHOLD_AMPS))
+                .finallyDo(interrupted -> {
+                    hood.setDutyCycle(0);
+                    if (!interrupted) {
+                        hood.resetAngleEncoder();
+                        hood.setHomed(true);
+                    } else {
+                        DriverStation.reportWarning("Hood: homing did not finish (timeout or interrupted), encoder not reset", false);
+                    }
+                    hood.setSoftLimitsEnabled(true);
+                })
+                .withTimeout(hoodConstants.HOMING_TIMEOUT_SECONDS)
+                .withName("Hood Homing");
+        };
  
         intakeWithSlowDrive = () ->
             new RollerCommands(rollers)
@@ -326,7 +359,7 @@ public class RobotContainer {
 
     public static void configureDriveBindings() {
         // Hood homing: on the first enable (auto, teleop or test) close the hood until the current jumps, then zero it.
-        new Trigger(RobotState::isEnabled).and(() -> !hood.isHomed()).onTrue(hood.homeCommand());
+        new Trigger(RobotState::isEnabled).and(() -> !hood.isHomed()).onTrue(homeHood.get());
         new Trigger(RobotState::isTeleop).and(RobotState::isEnabled).whileTrue(
             new StartEndCommand(() -> driveBase.setDefaultCommand(new DriveCommand(driveBase, driveController)),
             driveBase::removeDefaultCommand)
