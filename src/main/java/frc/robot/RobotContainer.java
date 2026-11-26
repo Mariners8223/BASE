@@ -61,6 +61,7 @@ import frc.robot.subsystems.Shooter.flywheel.flyWheelCommand;
 import frc.robot.subsystems.Shooter.flywheel.flyWheelConstants;
 import frc.robot.subsystems.Shooter.flywheel.flyWheelsubsystem;
 import frc.robot.subsystems.Shooter.hood.hoodConstants;
+import frc.robot.subsystems.Shooter.hood.homeHood;
 import frc.robot.subsystems.Shooter.hood.hoodSubsystem;
 import frc.robot.subsystems.Shooter.hood.openHood;
 import frc.robot.subsystems.Shooter.kicker.kickerOn;
@@ -165,41 +166,7 @@ public class RobotContainer {
     public static void configureCommands() {
         fuelIncrementer = () -> fuelApproximation += 3;
 
-        homeHood = () -> {
-            Timer statorCurrentTimer = new Timer();
-            Timer homingTimer = new Timer();
-            return new InstantCommand(() -> {
-                hood.setHomed(false);
-                hood.setSoftLimitsEnabled(false);
-                statorCurrentTimer.stop();
-                statorCurrentTimer.reset();
-                homingTimer.restart();
-            })
-            .andThen(new RunCommand(() -> {
-                hood.setDutyCycle(-hoodConstants.HOMING_DUTY_CYCLE);
-                // ignore the current spike when the motor starts
-                boolean currentHigh = homingTimer.hasElapsed(hoodConstants.HOMING_IGNORE_START_SECONDS)
-                    && Math.abs(hood.getStatorCurrent()) > hoodConstants.HOMING_CURRENT_THRESHOLD_AMPS;
-                if (currentHigh) {
-                    statorCurrentTimer.start();
-                } else {
-                    statorCurrentTimer.stop();
-                    statorCurrentTimer.reset();
-                }
-            }, hood).until(() -> statorCurrentTimer.hasElapsed(hoodConstants.HOMING_CURRENT_DEBOUNCE_SECONDS)))
-            .finallyDo(interrupted -> {
-                hood.setDutyCycle(0);
-                if (!interrupted) {
-                    hood.resetAngleEncoder();
-                    hood.setHomed(true);
-                } else {
-                    DriverStation.reportWarning("Hood: homing did not finish (timeout or interrupted), encoder not reset", false);
-                }
-                hood.setSoftLimitsEnabled(true);
-            })
-            .withTimeout(hoodConstants.HOMING_TIMEOUT_SECONDS)
-            .withName("Hood Homing");
-        };
+        homeHood = () -> new homeHood(hood).withName("Hood Homing");
  
         intakeWithSlowDrive = () ->
             new RollerCommands(rollers)
