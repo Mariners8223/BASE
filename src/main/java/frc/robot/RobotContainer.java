@@ -325,6 +325,8 @@ public class RobotContainer {
         }
 
     public static void configureDriveBindings() {
+        // Hood homing: on the first enable (auto, teleop or test) close the hood until the current jumps, then zero it.
+        new Trigger(RobotState::isEnabled).and(() -> !hood.isHomed()).onTrue(hood.homeCommand());
         new Trigger(RobotState::isTeleop).and(RobotState::isEnabled).whileTrue(
             new StartEndCommand(() -> driveBase.setDefaultCommand(new DriveCommand(driveBase, driveController)),
             driveBase::removeDefaultCommand)

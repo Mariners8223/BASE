@@ -25,7 +25,19 @@ public class hoodIOReal implements hoodIO {
         //fix: CHANGE: new. Turns on the Talon's own soft limits (see the method below).
         // MUST stay the LAST line here: setMaxMinOutput() re-applies the whole Talon config, and if it ran
         // after this line it would turn the limits off again.
-        applyTalonSoftLimits();
+        applyTalonSoftLimits(true);
+        // Faster stator current updates so homing sees the current jump quickly (default in the wrapper is 10 Hz).
+        hoodMotor.getMotor().getStatorCurrent().setUpdateFrequency(50);
+    }
+
+    @Override
+    public void setSoftLimitsEnabled(boolean enabled) {
+        if (enabled) {
+            hoodMotor.enableSoftLimits(0, hoodConstants.MAX_ANGLE_MOVEMENT_IN_MOTOR_ROTATIONS);
+        } else {
+            hoodMotor.disableSoftLimits();
+        }
+        applyTalonSoftLimits(enabled);
     }
 
     /**
@@ -38,12 +50,12 @@ public class hoodIOReal implements hoodIO {
      * Done here with hoodMotor.getMotor() so MarinersTalonFX does not need to change.
      * NOTE: 0 is wherever the encoder was zeroed (robot boot), so boot with the hood fully closed.
      */
-    private void applyTalonSoftLimits() {
+    private void applyTalonSoftLimits(boolean enabled) {
         SoftwareLimitSwitchConfigs limits = new SoftwareLimitSwitchConfigs()
             .withForwardSoftLimitThreshold(hoodConstants.MAX_ANGLE_MOVEMENT_IN_MOTOR_ROTATIONS * hoodConstants.GEAR_RATIO)
-            .withForwardSoftLimitEnable(true)
+            .withForwardSoftLimitEnable(enabled)
             .withReverseSoftLimitThreshold(0)
-            .withReverseSoftLimitEnable(true);
+            .withReverseSoftLimitEnable(enabled);
 
         StatusCode error = hoodMotor.getMotor().getConfigurator().apply(limits);
         if (!error.isOK()) {
@@ -62,6 +74,7 @@ public class hoodIOReal implements hoodIO {
     public void update(hoodIOInputs inputs) {
         inputs.hoodOpen = hoodMotor.getPosition();
         inputs.hoodVelocity = hoodMotor.getVelocity();
+        inputs.hoodStatorCurrent = hoodMotor.getMotor().getStatorCurrent().getValueAsDouble();
     }
     @Override
     public void setVoltage(double volts) {

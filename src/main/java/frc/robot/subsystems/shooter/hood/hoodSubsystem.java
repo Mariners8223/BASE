@@ -7,6 +7,10 @@ import static edu.wpi.first.units.Units.Volts;
 import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.filter.Debouncer.DebounceType;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -17,6 +21,7 @@ public class hoodSubsystem extends SubsystemBase {
     private final hoodIO io;
     private final hoodIOInputsAutoLogged inputs = new hoodIOInputsAutoLogged();
     private double targetPosition = 0;
+    private boolean isHomed = false;
     private final TunableNumber tuningDutyCycle = new TunableNumber("Hood/DutyCycle", 0);
     private final TunableNumber tuningPosition = new TunableNumber("Hood/Position Rotations", 0);
     public hoodSubsystem() {
@@ -25,6 +30,48 @@ public class hoodSubsystem extends SubsystemBase {
     }
     public void resetAngleEncoder() {
         io.resetAngleEncoder();
+    }
+    public boolean isHomed() {
+        return isHomed;
+    }
+    /**
+     * Homing: drive the hood closed at -HOMING_DUTY_CYCLE (soft limits off, since we may be below the boot zero)
+     * until the stator current jumps above HOMING_CURRENT_THRESHOLD_AMPS (hood hit the hard stop).
+     * Then stop, zero the encoder and turn the soft limits back on.
+     * The first HOMING_IGNORE_START_SECONDS are ignored so the start-up current spike is not mistaken for the stop.
+     * If it times out or is interrupted, the encoder is NOT reset (it keeps the boot zero).
+     */
+    public Command homeCommand() {
+        Debouncer stallDebouncer = new Debouncer(hoodConstants.HOMING_CURRENT_DEBOUNCE_SECONDS, DebounceType.kRising);
+        Timer timer = new Timer();
+        return startRun(
+            () -> {
+                isHomed = false;
+                stallDebouncer.calculate(false);
+                timer.restart();
+                io.setSoftLimitsEnabled(false);
+                io.setDutyCycle(-hoodConstants.HOMING_DUTY_CYCLE);
+            },
+            () -> io.setDutyCycle(-hoodConstants.HOMING_DUTY_CYCLE))
+            .until(() -> {
+                boolean currentHigh = timer.hasElapsed(hoodConstants.HOMING_IGNORE_START_SECONDS)
+                    && Math.abs(inputs.hoodStatorCurrent) > hoodConstants.HOMING_CURRENT_THRESHOLD_AMPS;
+                return stallDebouncer.calculate(currentHigh);
+            })
+            .finallyDo(interrupted -> {
+                io.setDutyCycle(0);
+                if (!interrupted) {
+                    io.resetAngleEncoder();
+                    isHomed = true;
+                } else {
+                    DriverStation.reportWarning("Hood: homing did not finish (timeout or interrupted), encoder not reset", false);
+                }
+                targetPosition = 0;
+                io.setSoftLimitsEnabled(true);
+            })
+            // timeout goes AFTER finallyDo so a timeout counts as "interrupted" (no encoder reset)
+            .withTimeout(hoodConstants.HOMING_TIMEOUT_SECONDS)
+            .withName("Hood Homing");
     }
     public void open(double distanceToHub, boolean shouldClose) {
         targetPosition = hoodConstants.MAX_ANGLE_MOVEMENT_IN_MOTOR_ROTATIONS * flyWheelConstants.getHoodPercent(distanceToHub);
@@ -75,5 +122,6 @@ public class hoodSubsystem extends SubsystemBase {
         io.update(inputs);
         Logger.processInputs("Shooter/Hood", inputs);
         Logger.recordOutput("Shooter/Hood/TargetPosition", targetPosition);
+        Logger.recordOutput("Shooter/Hood/IsHomed", isHomed);
     }
 }
