@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism;
 
 public class flyWheelSysID {
     private final SysIdRoutine routine;
+    
 
     public flyWheelSysID(flyWheelsubsystem flywheel) {
         routine = new SysIdRoutine(
@@ -26,11 +27,11 @@ public class flyWheelSysID {
         );
     }
 
-    public Command quasistatic(Direction direction) {
+    public Command getShooterQuasistatic(Direction direction){
         return routine.quasistatic(direction);
     }
 
-    public Command dynamic(Direction direction) {
+    public Command getShooterDynamic(Direction direction){
         return routine.dynamic(direction);
     }
 }

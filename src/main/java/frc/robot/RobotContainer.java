@@ -37,6 +37,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -67,6 +68,8 @@ import frc.robot.subsystems.Shooter.hood.hoodConstants;
 import frc.robot.subsystems.Shooter.hood.hoodSubsystem;
 import frc.robot.subsystems.Shooter.kicker.kickerSubsystem;
 import frc.util.HubTracker;
+import frc.robot.subsystems.Shooter.flywheel.flyWheelSysID;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -107,6 +110,8 @@ public class RobotContainer {
     public static LoggedDashboardChooser<String> preWarm;
     public static HashMap<String, Command> mirroredAutoMap = new HashMap<>();
 
+    public static flyWheelSysID flyWheelSysID;
+
     // #region Premade Commands
     public static Supplier<Command> intakeWithSlowDrive;
     public static Supplier<Command> extendIntake;
@@ -145,6 +150,8 @@ public class RobotContainer {
         transfer = new transferSubsystem();
         rackAndPinion = new rackAndPinionSubsystem();
         rollers = new Rollers();
+
+        flyWheelSysID = new flyWheelSysID(flywheel);
 
         // fix: CHANGE: vision no longer gets driveBase::reset. It gets yaw rate + tilt
         // instead, for its rejection filters.
@@ -317,7 +324,18 @@ public class RobotContainer {
     public static void configureDefaultCommands() {
     }
     // #endregion
-
+    
+    public static void configureShooterSYSID(){
+        driveController.circle().whileTrue(
+            new SequentialCommandGroup(
+                flyWheelSysID.getShooterDynamic(SysIdRoutine.Direction.kForward),
+                flyWheelSysID.getShooterDynamic(SysIdRoutine.Direction.kReverse),
+                flyWheelSysID.getShooterQuasistatic(SysIdRoutine.Direction.kForward),
+                flyWheelSysID.getShooterQuasistatic(SysIdRoutine.Direction.kReverse)
+            )
+        );
+       
+    }
     // #region Bindings
     public static void configureMechanismBindings() {
          driveController.L1().whileTrue(intakeWithSlowDrive.get());

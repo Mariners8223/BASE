@@ -14,12 +14,10 @@ import org.photonvision.targeting.PhotonPipelineResult;
 import org.photonvision.targeting.PhotonTrackedTarget;
 
 
-//fix: PREVIOUS VERSION (before the fix):
-//    import java.util.ArrayList;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.Optional;
-//fix: PREVIOUS VERSION (before the fix):
-//    import java.util.function.Supplier;
+import java.util.function.Supplier;
 
 //fix: CHANGE: removed @SuppressWarnings("removal") and moved to the photonlib 2026 API.
 // REASON: the strategy constructor, update() and setMultiTagFallbackStrategy() are
