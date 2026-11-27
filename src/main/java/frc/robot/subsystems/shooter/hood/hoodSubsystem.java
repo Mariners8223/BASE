@@ -11,6 +11,7 @@ import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.Shooter.flywheel.flyWheelConstants;
+import frc.robot.subsystems.Shooter.hood.hoodIOInputsAutoLogged;
 import frc.util.TunableNumber;
 
 public class hoodSubsystem extends SubsystemBase {

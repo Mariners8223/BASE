@@ -288,7 +288,7 @@ public class RobotContainer {
         stopRollers = () ->
             Commands.runOnce(rollers::stopMotor, rollers)
                 .withName("Stop Rollers");
-        // hoodLerp = () ->
+        // hood1 = () ->
         // Commands.runOnce(() -> hood.openToPosition(2), hood)
         // .withName("hood Lerp");
         Test = () -> 
@@ -356,17 +356,17 @@ public class RobotContainer {
         // .whileTrue(warmpupshooterMin.get());
         // new Trigger(() ->(getPreWarm() && !isShooting))
         // .whileTrue(warmpupshooterMin.get());
-        driveController.R1().whileTrue(Test.get());
-        driveController.L3().whileTrue(new hoodLerp(hood, 50));
+        // driveController.R1().whileTrue(Test.get());
+        // driveController.L3().whileTrue(new hoodLerp(hood, 50));
 
     }
 
     public static void configureDriveBindings() {
         // new Trigger(RobotState::isEnabled).and(() -> !hood.isHomed()).onTrue(homeHood.get());
-        new Trigger(RobotState::isTeleop).and(RobotState::isEnabled).whileTrue(
-                new StartEndCommand(() -> driveBase.setDefaultCommand(new DriveCommand(driveBase, driveController)),
-                        driveBase::removeDefaultCommand)
-                        .ignoringDisable(true));
+        // new Trigger(RobotState::isTeleop).and(RobotState::isEnabled).whileTrue(
+        //         new StartEndCommand(() -> driveBase.setDefaultCommand(new DriveCommand(driveBase, driveController)),
+        //                 driveBase::removeDefaultCommand)
+        //                 .ignoringDisable(true));
 
         driveController.PS().onTrue(driveBase.resetOnlyDirection());
 
