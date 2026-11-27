@@ -16,16 +16,18 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.commands.Drive.DriveCommand;
 import frc.robot.commands.Drive.MinorAdjust;
 import frc.robot.commands.Drive.MinorAdjust.AdjustmentDirection;
 import frc.robot.subsystems.DriveTrain.DriveBase;
 import frc.robot.subsystems.Vision.Vision;
 import frc.util.HubTracker;
+import frc.robot.subsystems.DriveTrain.DriveBaseSYSID;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,13 +37,14 @@ import java.util.function.BooleanSupplier;
 
 import org.littletonrobotics.conduit.ConduitApi;
  
-public class RobotContainer {
+    public class RobotContainer {
     
     public static Alert controllerDisconnected = new Alert("Drive Controller Disconnect", AlertType.kError);
     public static Alert brownoutBattery = new Alert("BROWNOUT", AlertType.kError);
  
     public static CommandPS5Controller driveController;
     public static DriveBase driveBase;
+    public static DriveBaseSYSID driveBaseSYSID;
  
     public static Runnable fuelIncrementer;
     public static int fuelApproximation = 0;
@@ -60,13 +63,27 @@ public class RobotContainer {
     public RobotContainer() {
         driveController = new CommandPS5Controller(0);
         driveBase = new DriveBase();
-
+        driveBaseSYSID = new DriveBaseSYSID(driveBase, driveController);
         configureDriveBindings();
-        driveController.cross().onTrue(new getSteerMotorsRoutineDynamic());
-        driveController.triangle().onTrue(new getDriveMotorsRoutineDynamic());
-        driveController.square().onTrue(new getThetaRoutineDynamic());
-        driveController.circle().onTrue(new );
 
+        driveController.cross().onTrue(new SequentialCommandGroup(
+            driveBaseSYSID.getDriveMotorsRoutineQuasistatic(SysIdRoutine.Direction.kForward),
+            driveBaseSYSID.getDriveMotorsRoutineQuasistatic(SysIdRoutine.Direction.kReverse),
+            driveBaseSYSID.getDriveMotorsRoutineDynamic(SysIdRoutine.Direction.kForward),
+            driveBaseSYSID.getDriveMotorsRoutineDynamic(SysIdRoutine.Direction.kReverse),
+
+            driveBaseSYSID.getSteerMotorsRoutineDynamic(SysIdRoutine.Direction.kForward),
+            driveBaseSYSID.getSteerMotorsRoutineDynamic(SysIdRoutine.Direction.kReverse),
+            driveBaseSYSID.getSteerMotorsRoutineQuasistatic(SysIdRoutine.Direction.kForward),
+            driveBaseSYSID.getSteerMotorsRoutineQuasistatic(SysIdRoutine.Direction.kReverse),
+            
+            driveBaseSYSID.getThetaRoutineDynamic(SysIdRoutine.Direction.kForward),
+            driveBaseSYSID.getThetaRoutineDynamic(SysIdRoutine.Direction.kReverse),
+            driveBaseSYSID.getThetaRoutineQuasistatic(SysIdRoutine.Direction.kForward),
+            driveBaseSYSID.getThetaRoutineQuasistatic(SysIdRoutine.Direction.kReverse)
+            ));
+
+        
     }
  
     //#region Commands
