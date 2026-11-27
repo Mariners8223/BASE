@@ -321,7 +321,7 @@ public class RobotContainer {
 
     // #region Bindings
     public static void configureMechanismBindings() {
-        // driveController.L1().whileTrue(intakeWithSlowDrive.get());
+         driveController.L1().whileTrue(intakeWithSlowDrive.get());
         // driveController.L2().whileTrue(pass.get());
 
         // driveController.R1().whileTrue(shoot.get());
@@ -674,8 +674,6 @@ public class RobotContainer {
         SmartDashboard.putNumber("Distance to Hub", distanceFromHub());
         SmartDashboard.putBoolean("In Alliance Zone", inAllianceZone());
         SmartDashboard.putBoolean("Ready To Shoot", readyToShoot());
-        // fix: CHANGE: new. Green = the normal shot (R1) can be used. Red = use the
-        // manual shot (cross).
         SmartDashboard.putBoolean("Pose Confident", vision.isPoseConfident());
         SmartDashboard.putString("intakeState", rackAndPinion.rackAndPinionState().name());
     }
