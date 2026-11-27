@@ -62,6 +62,10 @@ public class RobotContainer {
         driveBase = new DriveBase();
 
         configureDriveBindings();
+        driveController.cross().onTrue(new getSteerMotorsRoutineDynamic());
+        driveController.triangle().onTrue(new getDriveMotorsRoutineDynamic());
+        driveController.square().onTrue(new getThetaRoutineDynamic());
+        driveController.circle().onTrue(new );
 
     }
  
