@@ -1,5 +1,7 @@
 package frc.robot.subsystems.Shooter.flywheel;
 
+import static edu.wpi.first.units.Units.Seconds;
+
 import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.wpilibj2.command.Command;
@@ -15,7 +17,7 @@ public class flyWheelSysID {
     public flyWheelSysID(flyWheelsubsystem flywheel) {
         routine = new SysIdRoutine(
             new Config(
-                null, null, null,   // defaults: 1 V/s ramp, 7 V step, 10 s timeout
+                null, null, Seconds.of(20),   // defaults: 1 V/s ramp, 7 V step, 10 s timeout
                 (state) -> Logger.recordOutput("Shooter/SYSID/State", state.toString())
             ),
             new Mechanism(

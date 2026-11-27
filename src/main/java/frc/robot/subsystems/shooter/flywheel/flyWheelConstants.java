@@ -21,12 +21,13 @@ public class flyWheelConstants {
     public static final int CURRENT_THRESHOLD = 100;
     // Gains are set per motor rotation and multiplied by GEAR_RATIO, because the controller
     // works in flywheel rotations per second. That keeps them right if GEAR_RATIO changes.
-    public static final double MOTOR_KV = 0.0191; 
-    public static final double MOTOR_KP = 3; 
-    public static final double KS = 0.432; // volts to overcome friction
+    public static final double MOTOR_KV = 0.1132; 
+    public static final double MOTOR_KP = 0.16443; 
+    public static final double KS = 0.03245; // volts to overcome friction
     public static final double KV = MOTOR_KV;
+    public static final double KA = 0.0070555;
     public static final double KP = MOTOR_KP;
-    public static final PIDFGains PID = new PIDFGains(KP, 0, 0, KV);
+    public static final PIDFGains PID = new PIDFGains(KP, 0, 0,KV);
     public static final double RPM_TOLERANCE = 100;
     public static final double CURRENT_WHEN_SHOOTING = 115; // TODO: find the number of current while shooting
     public static double getCurrent(MarinersTalonFX motor) {

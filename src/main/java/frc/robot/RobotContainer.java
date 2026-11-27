@@ -177,6 +177,7 @@ public class RobotContainer {
         configureMechanismBindings();
         configureDriveBindings();
         configureChoosers();
+        // configureShooterSYSID();
     }
     
     // #region Commands
@@ -303,7 +304,7 @@ public class RobotContainer {
         // new kickerOn(kicker)
         // new transferOn(transfer)
             new flyWheelCommand(flywheel, () -> 3)
-                // .alongWith(new transferOn(transfer))
+                .alongWith(new transferOn(transfer))
                 .alongWith(new kickerOn(kicker))
                 // .alongWith(new RollerCommands(rollers))
                 .withName("test");
@@ -338,7 +339,7 @@ public class RobotContainer {
     }
     // #region Bindings
     public static void configureMechanismBindings() {
-         driveController.L1().whileTrue(intakeWithSlowDrive.get());
+        //  driveController.L1().whileTrue(intakeWithSlowDrive.get());
         // driveController.L2().whileTrue(pass.get());
 
         // driveController.R1().whileTrue(shoot.get());
@@ -373,8 +374,7 @@ public class RobotContainer {
         // .whileTrue(warmpupshooterMin.get());
         // new Trigger(() ->(getPreWarm() && !isShooting))
         // .whileTrue(warmpupshooterMin.get());
-        // driveController.R1().whileTrue(Test.get());
-        // driveController.L3().whileTrue(new hoodLerp(hood, 50));
+        driveController.R1().whileTrue(Test.get());
 
     }
 
