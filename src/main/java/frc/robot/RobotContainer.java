@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import org.littletonrobotics.conduit.ConduitApi;
  
@@ -48,8 +49,14 @@ import org.littletonrobotics.conduit.ConduitApi;
  
     public static Runnable fuelIncrementer;
     public static int fuelApproximation = 0;
-    
- 
+    public static Supplier<Command> cross;
+    public static Supplier<Command> square;
+    public static Supplier<Command> circle;
+
+
+    public static double crossdouble = 0;
+    public static double circledouble = 0;
+    public static double squaredouble = 0;
 
 
 
@@ -65,24 +72,103 @@ import org.littletonrobotics.conduit.ConduitApi;
         driveBase = new DriveBase();
         driveBaseSYSID = new DriveBaseSYSID(driveBase, driveController);
         configureDriveBindings();
+// CROSS - Drive motors
+cross = () -> {
+    if (crossdouble == 0) {
+        return driveBaseSYSID.getDriveMotorsRoutineQuasistatic(SysIdRoutine.Direction.kForward)
+            .finallyDo(interrupted -> {
+                if (!interrupted) crossdouble = 1;
+            });
+    }
+    else if (crossdouble == 1) {
+        return driveBaseSYSID.getDriveMotorsRoutineQuasistatic(SysIdRoutine.Direction.kReverse)
+            .finallyDo(interrupted -> {
+                if (!interrupted) crossdouble = 2;
+            });
+    }
+    else if (crossdouble == 2) {
+        return driveBaseSYSID.getDriveMotorsRoutineDynamic(SysIdRoutine.Direction.kForward)
+            .finallyDo(interrupted -> {
+                if (!interrupted) crossdouble = 3;
+            });
+    }
+    else {
+        return driveBaseSYSID.getDriveMotorsRoutineDynamic(SysIdRoutine.Direction.kReverse)
+            .finallyDo(interrupted -> {
+                if (!interrupted) crossdouble = 0;
+            });
+    }
+};
+    driveController.circle().whileTrue(new SequentialCommandGroup(
+        driveBaseSYSID.getThetaRoutineDynamic(SysIdRoutine.Direction.kForward),
+        driveBaseSYSID.getThetaRoutineDynamic(SysIdRoutine.Direction.kReverse),
+        driveBaseSYSID.getThetaRoutineQuasistatic(SysIdRoutine.Direction.kForward),
+        driveBaseSYSID.getThetaRoutineQuasistatic(SysIdRoutine.Direction.kReverse)
+    ));
 
-        driveController.cross().onTrue(new SequentialCommandGroup(
-            driveBaseSYSID.getDriveMotorsRoutineQuasistatic(SysIdRoutine.Direction.kForward),
-            driveBaseSYSID.getDriveMotorsRoutineQuasistatic(SysIdRoutine.Direction.kReverse),
-            driveBaseSYSID.getDriveMotorsRoutineDynamic(SysIdRoutine.Direction.kForward),
-            driveBaseSYSID.getDriveMotorsRoutineDynamic(SysIdRoutine.Direction.kReverse),
 
-            driveBaseSYSID.getSteerMotorsRoutineDynamic(SysIdRoutine.Direction.kForward),
-            driveBaseSYSID.getSteerMotorsRoutineDynamic(SysIdRoutine.Direction.kReverse),
-            driveBaseSYSID.getSteerMotorsRoutineQuasistatic(SysIdRoutine.Direction.kForward),
-            driveBaseSYSID.getSteerMotorsRoutineQuasistatic(SysIdRoutine.Direction.kReverse),
-            
-            driveBaseSYSID.getThetaRoutineDynamic(SysIdRoutine.Direction.kForward),
-            driveBaseSYSID.getThetaRoutineDynamic(SysIdRoutine.Direction.kReverse),
-            driveBaseSYSID.getThetaRoutineQuasistatic(SysIdRoutine.Direction.kForward),
-            driveBaseSYSID.getThetaRoutineQuasistatic(SysIdRoutine.Direction.kReverse)
-            ));
+// SQUARE - Steer motors
+square = () -> {
+    if (squaredouble == 0) {
+        return driveBaseSYSID.getSteerMotorsRoutineDynamic(SysIdRoutine.Direction.kForward)
+            .finallyDo(interrupted -> {
+                if (!interrupted) squaredouble = 1;
+            });
+    }
+    else if (squaredouble == 1) {
+        return driveBaseSYSID.getSteerMotorsRoutineDynamic(SysIdRoutine.Direction.kReverse)
+            .finallyDo(interrupted -> {
+                if (!interrupted) squaredouble = 2;
+            });
+    }
+    else if (squaredouble == 2) {
+        return driveBaseSYSID.getSteerMotorsRoutineQuasistatic(SysIdRoutine.Direction.kForward)
+            .finallyDo(interrupted -> {
+                if (!interrupted) squaredouble = 3;
+            });
+    }
+    else {
+        return driveBaseSYSID.getSteerMotorsRoutineQuasistatic(SysIdRoutine.Direction.kReverse)
+            .finallyDo(interrupted -> {
+                if (!interrupted) squaredouble = 0;
+            });
+    }
+};
 
+
+// CIRCLE - Theta
+// circle = () -> {
+//     if (circledouble == 0) {
+//         return driveBaseSYSID.getThetaRoutineDynamic(SysIdRoutine.Direction.kForward)
+//             .finallyDo(interrupted -> {
+//                 if (!interrupted) circledouble = 1;
+//             });
+//     }
+//     else if (circledouble == 1) {
+//         return driveBaseSYSID.getThetaRoutineDynamic(SysIdRoutine.Direction.kReverse)
+//             .finallyDo(interrupted -> {
+//                 if (!interrupted) circledouble = 2;
+//             });
+//     }
+//     else if (circledouble == 2) {
+//         return driveBaseSYSID.getThetaRoutineQuasistatic(SysIdRoutine.Direction.kForward)
+//             .finallyDo(interrupted -> {
+//                 if (!interrupted) circledouble = 3;
+//             });
+//     }
+//     else {
+//         return driveBaseSYSID.getThetaRoutineQuasistatic(SysIdRoutine.Direction.kReverse)
+//             .finallyDo(interrupted -> {
+//                 if (!interrupted) circledouble = 0;
+//             });
+//     }
+// };
+
+
+// Button bindings
+driveController.cross().whileTrue(cross.get());
+driveController.square().whileTrue(square.get());
+//driveController.circle().whileTrue(circle.get());
         
     }
  
