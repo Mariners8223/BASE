@@ -2,13 +2,14 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot.subsystems.Shooter.hood;
+package frc.robot.commands.Shooter;
 
 import java.util.function.DoubleSupplier;
 
 import com.fasterxml.jackson.databind.ser.std.NullSerializer;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.subsystems.Shooter.hood.hoodSubsystem;
 
 public class openHood extends Command {
   private final hoodSubsystem hood;

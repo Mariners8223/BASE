@@ -22,9 +22,9 @@ public class hoodConstants {
     public static final double HOOD_SPEED = 0.75 * 12; //duty cycle 0.1 -> * 12 to volt
     // Max duty cycle you can type in from AdvantageScope tuning (same limit as HOOD_SPEED)
     public static final double TUNING_MAX_DUTY_CYCLE = HOOD_SPEED / 12;
-    public static final double GEAR_RATIO = 225;
+    public static final double GEAR_RATIO = 60;
 
-    public static final double MAX_ANGLE_MOVEMENT_IN_MOTOR_ROTATIONS = 0.37; 
+    public static final double MAX_ANGLE_MOVEMENT_IN_MOTOR_ROTATIONS = 0.01; //0.37 
     public static final double POSITION_TOLERANCE_IN_MOTOR_ROTATIONS = 0.01;
 
     // Homing (runs once on the first enable): drive the hood closed at -HOMING_DUTY_CYCLE until the stator current

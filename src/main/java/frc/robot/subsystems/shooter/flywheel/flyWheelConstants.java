@@ -16,7 +16,7 @@ public class flyWheelConstants {
     public static final boolean IS_INVERTED = false;
     public static final boolean IS_FOLLOWER_INVERTED_FROM_LEAD = true; 
 
-    public static final double GEAR_RATIO = 9; // motor rotations per flywheel rotation. Max flywheel speed at 12V is about 6000 / 9 = ~670 RPM
+    public static final double GEAR_RATIO = 1; // motor rotations per flywheel rotation. Max flywheel speed at 12V is about 6000 / 9 = ~670 RPM
     public static final int CURRENT_LIMIT = 80;
     public static final int CURRENT_THRESHOLD = 100;
     // Gains are set per motor rotation and multiplied by GEAR_RATIO, because the controller
@@ -32,7 +32,7 @@ public class flyWheelConstants {
     public static double getCurrent(MarinersTalonFX motor) {
         return Math.abs(motor.getMotor().getStatorCurrent().getValueAsDouble());
     }
-    private static final double[][] SHOT_TABLE = {
+    private static final double[][] SHOT_TABLE = {//DISTANCE, HOOD ANGLE, RPM
         {1.8, 0.167, 1000},
         {2.3, 0.271, 1000},
         {2.8, 0.375, 1000},
